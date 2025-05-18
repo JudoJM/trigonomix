@@ -137,13 +137,29 @@ io.on('connection', (socket) => {
     // Evento para iniciar el juego
     socket.on('startGame', ({ roomCode, questions }) => {
         // Si no existe la sala, ignorar
-        if (!rooms[roomCode]) return;
+        if (!rooms[roomCode]) {
+            socket.emit('gameAborted', { reason: 'La sala no existe o ha sido cerrada.' });
+            return;
+        }
         
-        // Guardar preguntas
-        rooms[roomCode].gameState.questions = questions;
+        // Verificar que las preguntas sean válidas
+        if (!Array.isArray(questions) || questions.length === 0) {
+            console.error('Error: Preguntas inválidas recibidas', questions);
+            socket.emit('gameAborted', { reason: 'Error al cargar las preguntas. Por favor, intenta de nuevo.' });
+            return;
+        }
         
-        // Iniciar juego
-        startGame(roomCode);
+        try {
+            // Guardar preguntas
+            rooms[roomCode].gameState.questions = questions;
+            console.log(`Juego iniciado en sala ${roomCode} con ${questions.length} preguntas`);
+            
+            // Iniciar juego
+            startGame(roomCode);
+        } catch (error) {
+            console.error('Error al iniciar el juego:', error);
+            socket.emit('gameAborted', { reason: 'Error al iniciar el juego. Por favor, intenta de nuevo.' });
+        }
     });
 
     // Evento para respuesta de jugador

@@ -770,37 +770,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 totalQuestions: onlineGameState.totalQuestions
             });
             
-            // Preparar preguntas (conseguir todas las preguntas del juego base)
-            // Hacemos referencia a questions que debería estar definido en script.js
+            // Preparar preguntas (usar todas las preguntas del juego base)
+            // Acceder a questions que está definido en el ámbito global en script.js
             let gameQuestions = [];
-            if (typeof questions !== 'undefined' && Array.isArray(questions)) {
-                // Mezclar todas las preguntas
-                const allQuestions = [...questions];
-                
-                // Fisher-Yates (Knuth) Shuffle
-                for (let i = allQuestions.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [allQuestions[i], allQuestions[j]] = [allQuestions[j], allQuestions[i]];
+            
+            try {
+                // Asegurarse de que questions esté disponible
+                if (window.questions && Array.isArray(window.questions)) {
+                    console.log('Preguntas encontradas:', window.questions.length);
+                    
+                    // Mezclar todas las preguntas
+                    const allQuestions = [...window.questions];
+                    
+                    // Fisher-Yates (Knuth) Shuffle
+                    for (let i = allQuestions.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [allQuestions[i], allQuestions[j]] = [allQuestions[j], allQuestions[i]];
+                    }
+                    
+                    // Tomar número deseado de preguntas
+                    gameQuestions = allQuestions.slice(0, onlineGameState.totalQuestions);
+                    
+                    console.log('Preguntas seleccionadas para el juego:', gameQuestions.length);
+                } else {
+                    throw new Error('La variable questions no está definida o no es un array');
                 }
-                
-                // Tomar número deseado de preguntas
-                gameQuestions = allQuestions.slice(0, onlineGameState.totalQuestions);
-            } else {
-                // Crear preguntas de ejemplo si no hay disponibles
-                for (let i = 0; i < onlineGameState.totalQuestions; i++) {
-                    gameQuestions.push({
-                        text: `Pregunta de ejemplo ${i + 1}`,
-                        options: [
-                            { text: "Opción A", correct: i % 3 === 0 },
-                            { text: "Opción B", correct: i % 3 === 1 },
-                            { text: "Opción C", correct: i % 3 === 2 }
-                        ],
-                        feedback: {
-                            correct: "¡Correcto!",
-                            incorrect: "Incorrecto, sigue intentando."
-                        }
-                    });
-                }
+            } catch (error) {
+                console.error('Error al preparar preguntas:', error);
+                document.getElementById('connection-error-message').textContent = 
+                    'Error al cargar las preguntas. Por favor, recarga la página e inténtalo de nuevo.';
+                showScreen('connection-error-screen');
+                return;
             }
             
             // Iniciar juego

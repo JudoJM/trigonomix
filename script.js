@@ -10,14 +10,26 @@ document.addEventListener('DOMContentLoaded', () => {
         FAST_ANSWER: 'FAST_ANSWER',
         PERFECT_EASY: 'PERFECT_EASY',
         PERFECT_INTERMEDIATE: 'PERFECT_INTERMEDIATE',
-        PERFECT_DIFFICULT: 'PERFECT_DIFFICULT'
+        PERFECT_DIFFICULT: 'PERFECT_DIFFICULT',
+        STREAK_MASTER: 'STREAK_MASTER',
+        TRIGONOMETRY_NINJA: 'TRIGONOMETRY_NINJA',
+        MULTIPLAYER_CHAMPION: 'MULTIPLAYER_CHAMPION',
+        SPEED_DEMON: 'SPEED_DEMON',
+        COMEBACK_KING: 'COMEBACK_KING',
+        MATH_WIZARD: 'MATH_WIZARD'
     };
 
     const ACHIEVEMENT_DETAILS = {
         [ACHIEVEMENT_IDS.FAST_ANSWER]: { name: "¡Todo un pro!", description: "Respondiste una pregunta correctamente en menos de 5 segundos." },
         [ACHIEVEMENT_IDS.PERFECT_EASY]: { name: "Balon de oro", description: "Completaste el nivel Fácil con puntaje perfecto." },
         [ACHIEVEMENT_IDS.PERFECT_INTERMEDIATE]: { name: "El proximo Albert Einstein", description: "Completaste el nivel Intermedio con puntaje perfecto." },
-        [ACHIEVEMENT_IDS.PERFECT_DIFFICULT]: { name: "El orgullo de Pitágoras", description: "Completaste el nivel Difícil con puntaje perfecto." }
+        [ACHIEVEMENT_IDS.PERFECT_DIFFICULT]: { name: "El orgullo de Pitágoras", description: "Completaste el nivel Difícil con puntaje perfecto." },
+        [ACHIEVEMENT_IDS.STREAK_MASTER]: { name: "¡Imparable!", description: "Respondiste correctamente 5 preguntas seguidas sin equivocarte." },
+        [ACHIEVEMENT_IDS.TRIGONOMETRY_NINJA]: { name: "Ninja Trigonométrico", description: "Completaste todos los niveles al menos una vez." },
+        [ACHIEVEMENT_IDS.MULTIPLAYER_CHAMPION]: { name: "Rey del Multijugador", description: "Ganaste 3 partidas en modo multijugador." },
+        [ACHIEVEMENT_IDS.SPEED_DEMON]: { name: "Velocista Matemático", description: "Completaste un nivel en menos de 2 minutos." },
+        [ACHIEVEMENT_IDS.COMEBACK_KING]: { name: "¡Remontada Épica!", description: "Ganaste una partida después de ir 20 puntos por detrás." },
+        [ACHIEVEMENT_IDS.MATH_WIZARD]: { name: "Mago de los Números", description: "Acumulaste un total de 1000 puntos en todos los modos de juego." }
     };
     
 
@@ -69,6 +81,24 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameData = {
         score: 0,
         history: [],
+        streak: 0, // Para STREAK_MASTER
+        completedLevels: { easy: false, intermediate: false, difficult: false }, // Para TRIGONOMETRY_NINJA
+        multiplayerWins: 0, // Para MULTIPLAYER_CHAMPION
+        totalPoints: 0, // Para MATH_WIZARD
+        playerAchievements: {
+            FAST_ANSWER: null,
+            PERFECT_EASY: null,
+            PERFECT_INTERMEDIATE: null,
+            PERFECT_DIFFICULT: null,
+            STREAK_MASTER: null,
+            TRIGONOMETRY_NINJA: null,
+            MULTIPLAYER_CHAMPION: null,
+            SPEED_DEMON: null,
+            COMEBACK_KING: null,
+            MATH_WIZARD: null
+        },
+        comebackCandidate: false, // Para COMEBACK_KING
+        comebackDeficit: 0, // Para COMEBACK_KING
         currentLevel: null,
         currentQuestionIndex: 0,
         currentLevelQuestions: [],
@@ -78,19 +108,13 @@ document.addEventListener('DOMContentLoaded', () => {
             easy: { score: 0, name: "CPU" }, 
             intermediate: { score: 0, name: "CPU" }, 
             difficult: { score: 0, name: "CPU" } 
-        },
-        playerAchievements: {} // Stores unlocked achievements, e.g., { FAST_ANSWER: "10/27/2023" }
+        }
     };
-
-    // Initialize playerAchievements with all possible achievements set to null (locked)
-    Object.values(ACHIEVEMENT_IDS).forEach(id => {
-        gameData.playerAchievements[id] = null;
-    });
-
 
     // --- Questions Database ---
     // Types: 'define_ratio', 'identify_part', 'visual_select'
-    const questions = [
+    // Definir questions como variable global para que sea accesible desde online.js
+    window.questions = [
         // Easy: Conceptos Básicos
         {
             level: 'easy',
@@ -893,6 +917,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (isCorrect) {
             gameData.score += 10;
+            gameData.streak = (gameData.streak || 0) + 1;
+            if (gameData.streak === 5) {
+                unlockAchievement(ACHIEVEMENT_IDS.STREAK_MASTER);
+            }
             feedbackTextDisplay.textContent = feedbackMessages.correct || "¡Correcto!";
             feedbackTextDisplay.classList.add('correct', 'show');
             currentScoreDisplay.classList.add('updated'); 
@@ -903,6 +931,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 unlockAchievement(ACHIEVEMENT_IDS.FAST_ANSWER);
             }
         } else {
+            gameData.streak = 0; // Reinicia la racha si se equivoca
             feedbackTextDisplay.textContent = feedbackMessages.incorrect || "Incorrecto.";
             feedbackTextDisplay.classList.add('incorrect', 'show');
         }
@@ -959,7 +988,6 @@ document.addEventListener('DOMContentLoaded', () => {
             endGame(); // Completed all questions for the level
         }
     }
-
     /**
      * Ends the current game session.
      */
@@ -986,7 +1014,34 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        saveData(); // Save final score, high scores, and any new achievements
+        // Guardar historial y puntaje
+        gameData.history.push({
+            level: gameData.currentLevel,
+            score: gameData.score,
+            date: new Date().toLocaleDateString('es-ES')
+        });
+
+        // Actualizar niveles completados
+        gameData.completedLevels[gameData.currentLevel] = true;
+        // Logro Ninja Trigonométrico
+        if (gameData.completedLevels.easy && gameData.completedLevels.intermediate && gameData.completedLevels.difficult) {
+            unlockAchievement(ACHIEVEMENT_IDS.TRIGONOMETRY_NINJA);
+        }
+        // Logro Velocista Matemático
+        if (typeof gameStartTimestamp !== 'undefined') {
+            const totalTime = Math.floor((Date.now() - gameStartTimestamp) / 1000);
+            if (totalTime <= 120) {
+                unlockAchievement(ACHIEVEMENT_IDS.SPEED_DEMON);
+            }
+        }
+        // Logro Mago de los Números
+        gameData.totalPoints = (gameData.totalPoints || 0) + gameData.score;
+        if (gameData.totalPoints >= 1000) {
+            unlockAchievement(ACHIEVEMENT_IDS.MATH_WIZARD);
+        }
+        // Reiniciar racha al finalizar
+        gameData.streak = 0;
+        saveData();
         displayHighScoresOnLevelSelect(); // Update high scores on level select screen
         showScreen('game-over-screen');
     }
@@ -1203,6 +1258,17 @@ document.addEventListener('DOMContentLoaded', () => {
     loadData(); // Load any saved data
     displayHighScoresOnLevelSelect(); // Display high scores on level select screen
     showScreen('start-screen'); // Show the start screen first
+
+    // --- HOOKS PARA MULTIJUGADOR ---
+    // Lógica para MULTIPLAYER_CHAMPION y COMEBACK_KING debe integrarse en el flujo de multijugador.
+    // Ejemplo de cómo podrías desbloquearlos:
+    // function onMultiplayerWin(playerScore, opponentScore, wasComeback) {
+    //     gameData.multiplayerWins = (gameData.multiplayerWins || 0) + 1;
+    //     if (gameData.multiplayerWins >= 3) unlockAchievement(ACHIEVEMENT_IDS.MULTIPLAYER_CHAMPION);
+    //     if (wasComeback) unlockAchievement(ACHIEVEMENT_IDS.COMEBACK_KING);
+    //     saveData();
+    // }
+
     const aboutButton = document.getElementById('about-button');
     if (aboutButton) {
         aboutButton.addEventListener('click', () => showScreen('about-screen'));
