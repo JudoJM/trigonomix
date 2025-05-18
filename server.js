@@ -183,13 +183,18 @@ io.on('connection', (socket) => {
             player.incorrectAnswers++;
         }
         
-        // Notificar a todos sobre la respuesta
+        // Notificar a todos sobre la respuesta (ambos puntajes)
         io.to(roomCode).emit('answerResult', {
+            players: room.players.map(p => ({
+                id: p.id,
+                name: p.name,
+                score: p.score,
+                correctAnswers: p.correctAnswers,
+                incorrectAnswers: p.incorrectAnswers,
+                isHost: p.isHost
+            })),
             playerId: socket.id,
-            isCorrect,
-            newScore: player.score,
-            correctAnswers: player.correctAnswers,
-            incorrectAnswers: player.incorrectAnswers
+            isCorrect
         });
         
         // Pasar al siguiente turno/pregunta

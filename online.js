@@ -112,30 +112,20 @@ document.addEventListener('DOMContentLoaded', () => {
             // Redirigir fuera de la sala
             window.location.href = '/'; // O la ruta de inicio adecuada
         });
-        // Escuchar evento de actualización de puntaje en tiempo real
-        onlineGameState.socket.on('answerResult', ({ playerId, isCorrect, newScore, correctAnswers, incorrectAnswers }) => {
-            // Actualizar los datos de los jugadores según el id
-            if (onlineGameState.playerInfo && playerId === onlineGameState.playerInfo.id) {
-                onlineGameState.playerInfo.score = newScore;
-                onlineGameState.playerInfo.correctAnswers = correctAnswers;
-                onlineGameState.playerInfo.incorrectAnswers = incorrectAnswers;
-            } else if (onlineGameState.otherPlayerInfo && playerId === onlineGameState.otherPlayerInfo.id) {
-                onlineGameState.otherPlayerInfo.score = newScore;
-                onlineGameState.otherPlayerInfo.correctAnswers = correctAnswers;
-                onlineGameState.otherPlayerInfo.incorrectAnswers = incorrectAnswers;
+        // Escuchar evento de actualización de puntaje en tiempo real (ambos jugadores)
+        onlineGameState.socket.on('answerResult', ({ players, playerId, isCorrect }) => {
+            if (players && players.length === 2) {
+                players.forEach(player => {
+                    if (onlineGameState.playerInfo && player.id === onlineGameState.playerInfo.id) {
+                        Object.assign(onlineGameState.playerInfo, player);
+                    } else if (onlineGameState.otherPlayerInfo && player.id === onlineGameState.otherPlayerInfo.id) {
+                        Object.assign(onlineGameState.otherPlayerInfo, player);
+                    }
+                });
             }
-            // Forzar actualización de ambos jugadores en la UI
             updateOnlinePlayersUI();
-
-            // Animación de puntaje actualizado
-            // Mostrar animación en ambos lados para asegurar feedback visual
-            if (onlineGameState.isHost) {
-                animateScoreUpdate(onlinePlayer1Points);
-                animateScoreUpdate(onlinePlayer2Points);
-            } else {
-                animateScoreUpdate(onlinePlayer1Points);
-                animateScoreUpdate(onlinePlayer2Points);
-            }
+            animateScoreUpdate(onlinePlayer1Points);
+            animateScoreUpdate(onlinePlayer2Points);
         });
         try {
             // Crear conexión
