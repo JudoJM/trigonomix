@@ -182,10 +182,15 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             // Evento cuando un jugador se une a la sala
-            onlineGameState.socket.on('roomJoined', ({ roomCode, playerInfo }) => {
+            onlineGameState.socket.on('roomJoined', ({ roomCode, playerInfo, totalQuestions }) => {
                 onlineGameState.roomCode = roomCode;
                 onlineGameState.playerInfo = playerInfo;
                 onlineGameState.isHost = false;
+                
+                // Actualizar el número de preguntas con el valor configurado por el anfitrión
+                if (totalQuestions) {
+                    onlineGameState.totalQuestions = totalQuestions;
+                }
                 
                 // Actualizar UI
                 roomCodeDisplay.textContent = roomCode;
@@ -280,44 +285,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             
-            // Evento cuando un jugador responde
-            onlineGameState.socket.on('answerResult', ({ playerId, isCorrect, newScore, correctAnswers, incorrectAnswers }) => {
-                // Verificar si es mi respuesta o la del otro jugador
+            // Evento cuando un jugador responde (ya manejado al inicio del archivo)
+            // No necesitamos duplicar este evento aquí
+            
+            // Si es mi turno y respondí, detener temporizador
+            onlineGameState.socket.on('playerAnswered', ({ playerId }) => {
                 const isMyAnswer = playerId === onlineGameState.socket.id;
-                
-                // Actualizar estadísticas del jugador correspondiente
-                if (isMyAnswer) {
-                    onlineGameState.playerInfo.score = newScore;
-                    onlineGameState.playerInfo.correctAnswers = correctAnswers;
-                    onlineGameState.playerInfo.incorrectAnswers = incorrectAnswers;
-                    
-                    // Actualizar UI de jugador 1 o 2 dependiendo de si soy host o invitado
-                    if (onlineGameState.isHost) {
-                        onlinePlayer1Points.textContent = newScore;
-                        animateScoreUpdate(onlinePlayer1Points);
-                    } else {
-                        onlinePlayer2Points.textContent = newScore;
-                        animateScoreUpdate(onlinePlayer2Points);
-                    }
-                } else {
-                    // Es respuesta del otro jugador
-                    if (onlineGameState.otherPlayerInfo) {
-                        onlineGameState.otherPlayerInfo.score = newScore;
-                        onlineGameState.otherPlayerInfo.correctAnswers = correctAnswers;
-                        onlineGameState.otherPlayerInfo.incorrectAnswers = incorrectAnswers;
-                        
-                        // Actualizar UI del otro jugador
-                        if (onlineGameState.isHost) {
-                            onlinePlayer2Points.textContent = newScore;
-                            animateScoreUpdate(onlinePlayer2Points);
-                        } else {
-                            onlinePlayer1Points.textContent = newScore;
-                            animateScoreUpdate(onlinePlayer1Points);
-                        }
-                    }
-                }
-                
-                // Si es mi turno y respondí, detener temporizador
                 if (isMyAnswer && onlineGameState.isMyTurn) {
                     stopOnlineTimer();
                 }

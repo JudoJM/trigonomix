@@ -19,7 +19,7 @@ io.on('connection', (socket) => {
     console.log('Nuevo usuario conectado:', socket.id);
 
     // Evento para crear una sala
-    socket.on('createRoom', ({ playerName }) => {
+    socket.on('createRoom', ({ playerName, totalQuestions = 20 }) => {
         // Generar código de sala alfanumérico (longitud 6)
         const roomCode = generateRoomCode();
         
@@ -38,7 +38,7 @@ io.on('connection', (socket) => {
                 currentQuestionIndex: 0,
                 currentTurn: 0, // Índice del jugador actual
                 questions: [],
-                totalQuestions: 20,
+                totalQuestions: totalQuestions, // Usar el valor proporcionado por el cliente
                 timerValue: 15
             }
         };
@@ -88,10 +88,11 @@ io.on('connection', (socket) => {
         // Unir socket a la sala
         socket.join(roomCode);
         
-        // Enviar confirmación al cliente
+        // Enviar confirmación al cliente con el número correcto de preguntas
         socket.emit('roomJoined', {
             roomCode,
-            playerInfo
+            playerInfo,
+            totalQuestions: rooms[roomCode].gameState.totalQuestions // Enviar el número de preguntas configurado por el anfitrión
         });
         
         // Notificar al host que un jugador se ha unido
@@ -195,6 +196,11 @@ io.on('connection', (socket) => {
             })),
             playerId: socket.id,
             isCorrect
+        });
+        
+        // Emitir evento para detener el temporizador
+        io.to(roomCode).emit('playerAnswered', {
+            playerId: socket.id
         });
         
         // Pasar al siguiente turno/pregunta
