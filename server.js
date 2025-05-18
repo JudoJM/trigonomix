@@ -379,19 +379,17 @@ function handlePlayerDisconnect(roomCode, playerId) {
     // Eliminar al jugador
     room.players.splice(playerIndex, 1);
     
-    // Si no quedan jugadores, eliminar sala
-    if (room.players.length === 0) {
+    // Si era el host, cerrar la sala y notificar a los demás
+    if (wasHost) {
+        io.to(roomCode).emit('roomClosed', { reason: 'El anfitrión ha abandonado la sala.' });
         delete rooms[roomCode];
         return;
     }
     
-    // Si era el host y quedan otros jugadores, transferir host
-    if (wasHost && room.players.length > 0) {
-        room.players[0].isHost = true;
-        // Notificar nuevo host
-        io.to(roomCode).emit('newHost', {
-            newHostId: room.players[0].id
-        });
+    // Si no quedan jugadores, eliminar sala
+    if (room.players.length === 0) {
+        delete rooms[roomCode];
+        return;
     }
     
     // Si el juego estaba activo, finalizarlo

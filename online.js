@@ -85,9 +85,56 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Inicializar conexión Socket.io
     function initSocketConnection() {
+        if (!onlineGameState.socket) {
+            try {
+                onlineGameState.socket = io();
+            } catch (e) {
+                console.error('No se pudo inicializar la conexión Socket.io:', e);
+                return;
+            }
+        }
+        if (!onlineGameState.socket) {
+            console.error('Socket no está inicializado.');
+            return;
+        }
+        // Listener para cierre de sala por parte del host
+        onlineGameState.socket.on('roomClosed', (data) => {
+            alert(data.reason || 'La sala ha sido cerrada.');
+            // Limpiar el estado local antes de salir
+            onlineGameState.roomCode = null;
+            onlineGameState.playerInfo = null;
+            onlineGameState.otherPlayerInfo = null;
+            onlineGameState.isHost = false;
+            onlineGameState.gameActive = false;
+            onlineGameState.currentQuestion = null;
+            onlineGameState.currentQuestionIndex = 0;
+            onlineGameState.isMyTurn = false;
+            // Redirigir fuera de la sala
+            window.location.href = '/'; // O la ruta de inicio adecuada
+        });
+        // Escuchar evento de actualización de puntaje en tiempo real
+        onlineGameState.socket.on('answerResult', ({ playerId, isCorrect, newScore, correctAnswers, incorrectAnswers }) => {
+            // Actualizar los datos de los jugadores según el id
+            if (onlineGameState.playerInfo && playerId === onlineGameState.playerInfo.id) {
+                onlineGameState.playerInfo.score = newScore;
+                onlineGameState.playerInfo.correctAnswers = correctAnswers;
+                onlineGameState.playerInfo.incorrectAnswers = incorrectAnswers;
+            } else if (onlineGameState.otherPlayerInfo && playerId === onlineGameState.otherPlayerInfo.id) {
+                onlineGameState.otherPlayerInfo.score = newScore;
+                onlineGameState.otherPlayerInfo.correctAnswers = correctAnswers;
+                onlineGameState.otherPlayerInfo.incorrectAnswers = incorrectAnswers;
+            }
+            updateOnlinePlayersUI();
+            // Animación de puntaje actualizado
+            if (playerId === (onlineGameState.playerInfo && onlineGameState.playerInfo.id)) {
+                animateScoreUpdate(onlineGameState.isHost ? onlinePlayer1Points : onlinePlayer2Points);
+            } else {
+                animateScoreUpdate(onlineGameState.isHost ? onlinePlayer2Points : onlinePlayer1Points);
+            }
+        });
         try {
             // Crear conexión
-            onlineGameState.socket = io();
+            //onlineGameState.socket = io();
             
             // Evento de conexión establecida
             onlineGameState.socket.on('connect', () => {
