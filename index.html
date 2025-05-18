@@ -1,0 +1,559 @@
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trigonomix</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="importmap">
+    {
+        "imports": {
+            
+        }
+    }
+    </script>
+    <!-- Cargar Socket.io desde el servidor o CDN como fallback -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Verificar si Socket.io se cargó correctamente y cargar desde CDN si es necesario
+        window.addEventListener('DOMContentLoaded', function() {
+            if (typeof io === 'undefined') {
+                console.log('Cargando Socket.io desde CDN...');
+                var script = document.createElement('script');
+                script.src = 'https://cdn.socket.io/4.7.2/socket.io.min.js';
+                script.integrity = "sha384-mZLF4UVrpi/QTWPA7BjNPsS/zBP0ZDsGDCnZUCTCYYFS9bELsvTTn7MU7wUoOhbr";
+                script.crossOrigin = "anonymous";
+                script.onload = function() {
+                    console.log('Socket.io cargado correctamente desde CDN');
+                    // Si tienes una función de inicialización, puedes llamarla aquí
+                    if (typeof initSocketConnection === 'function') {
+                        initSocketConnection();
+                    }
+                };
+                document.head.appendChild(script);
+            }
+        });
+    </script>
+</head>
+<body>
+    
+        
+    <div id="app-container">
+        <button id="toggle-theme-button" class="nav-button">Modo oscuro</button>
+        
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen active">
+            <h1>Trigonomix</h1>
+            <p>Un juego interactivo y divertido para aprender razones trigonométricas.</p>
+            <div id="player-name-container">
+                <label for="player-name-input">Nombre del Jugador:</label>
+                <input type="text" id="player-name-input" placeholder="Jugador" maxlength="20">
+            </div>
+            <button id="start-game-button" class="action-button">Comenzar</button>
+            <button id="multiplayer-button" class="action-button">Modo 2 Jugadores</button>
+            <button id="online-button" class="action-button">Multijugador Online</button>
+            <button id="theory-button" class="secondary-button">Teoría</button>
+            <button id="history-button" class="secondary-button">Historial</button>
+            <button id="achievements-button" class="secondary-button">Logros</button>
+            <button id="authors-button" class="secondary-button">Autores</button>
+            <button id="about-button" class="secondary-button">Acerca de</button>
+        </div>
+
+        <!-- Level Select Screen -->
+        <div id="level-select-screen" class="screen">
+            <h2>Selecciona un Nivel</h2>
+            <button id="level-easy" data-level="easy" class="level-button action-button">
+                Fácil (Conceptos)
+                <span class="level-highscore" data-level="easy">Mejor: 0 (CPU)</span>
+            </button>
+            <button id="level-intermediate" data-level="intermediate" class="level-button action-button">
+                Intermedio (Identificación)
+                <span class="level-highscore" data-level="intermediate">Mejor: 0 (CPU)</span>
+            </button>
+            <button id="level-difficult" data-level="difficult" class="level-button action-button">
+                Difícil (Relaciones)
+                <span class="level-highscore" data-level="difficult">Mejor: 0 (CPU)</span>
+            </button>
+            <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <div class="game-header">
+                <span id="current-level-text">Nivel: Fácil</span>
+                <span id="current-score">Puntaje: 0</span>
+                <span id="timer-display">Tiempo: 30</span>
+                <span id="question-counter">Pregunta: 1/X</span>
+            </div>
+            <h3 id="question-text">Cargando pregunta...</h3>
+            <div id="question-image-container">
+                <img id="question-image" src="" alt="Diagrama de la pregunta" style="display:none;"> 
+                <p id="image-value-info"></p>
+            </div>
+            <div id="options-container">
+                <!-- Options will be populated by JS - could be text or images -->
+            </div>
+            <p id="feedback-text" class="feedback-animation"></p>
+            <button id="next-question-button" class="action-button" style="display:none;">Siguiente Pregunta</button>
+            <button id="quit-game-button" class="nav-button" data-target="level-select-screen">Salir del Juego</button>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="game-over-screen" class="screen">
+            <h2 id="game-over-title">¡Juego Terminado!</h2>
+            <p id="final-score-text">Tu puntaje final: 0</p>
+            <p id="level-high-score-text">Mejor puntaje para este nivel: 0 por CPU</p>
+            <button id="play-again-button" class="action-button">Jugar de Nuevo (Mismo Nivel)</button>
+            <button class="nav-button" data-target="level-select-screen">Seleccionar Otro Nivel</button>
+            <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
+        </div>
+        
+        <!-- History Screen -->
+        <div id="history-screen" class="screen">
+            <h2>Historial de Respuestas</h2>
+            <div id="history-list">
+                <!-- History items will be populated by JS -->
+            </div>
+            <button id="clear-history-button" class="action-button">Limpiar Historial</button>
+            <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
+        </div>
+
+        <!-- Authors Screen -->
+        <div id="authors-screen" class="screen">
+            <h2>Autores</h2>
+            <div class="authors-container">
+                <div class="author-card">
+                    <h3 class="author-name">Juan Manuel Montenegro</h3>
+                    <p class="author-role">Mbappé</p>
+                </div>
+                <div class="author-card">
+                    <h3 class="author-name">Juan David Rivas</h3>
+                    <p class="author-role">Dembélé</p>
+                </div>
+                <div class="author-card">
+                    <h3 class="author-name">Grado 10-2</h3>
+                </div>
+            </div>
+            <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
+        </div>
+
+        <!-- Theory Screen -->
+        <div id="theory-screen" class="screen">
+            <h2>Teoría de Trigonometría</h2>
+            <div class="theory-content">
+                <div class="theory-topic">
+                    <h3>Triángulo Rectángulo</h3>
+                    <img src="triangle_diagram.png" alt="Diagrama de Triángulo con etiquetas o, a, h" class="theory-image">
+                    <p>Un triángulo rectángulo tiene un ángulo de 90°. Los lados que forman el ángulo recto se llaman <strong>catetos</strong>. El lado más largo, opuesto al ángulo recto, es la <strong>hipotenusa</strong>.</p>
+                    <p>En el diagrama:</p>
+                    <ul>
+                        <li><strong>θ (theta):</strong> Es el ángulo de referencia.</li>
+                        <li><strong>o (Cateto Opuesto):</strong> Lado opuesto al ángulo θ.</li>
+                        <li><strong>a (Cateto Adyacente):</strong> Lado adyacente al ángulo θ (que no es la hipotenusa).</li>
+                        <li><strong>h (Hipotenusa):</strong> Lado más largo, opuesto al ángulo recto.</li>
+                    </ul>
+                </div>
+                <div class="theory-topic">
+                    <h3>Seno (sin θ)</h3>
+                    <p>El Seno de un ángulo θ es la razón entre el cateto opuesto y la hipotenusa.</p>
+                    <p><strong>Fórmula:</strong> sen(θ) = Cateto Opuesto / Hipotenusa (o/h)</p>
+                </div>
+                <div class="theory-topic">
+                    <h3>Coseno (cos θ)</h3>
+                    <p>El Coseno de un ángulo θ es la razón entre el cateto adyacente y la hipotenusa.</p>
+                    <p><strong>Fórmula:</strong> cos(θ) = Cateto Adyacente / Hipotenusa (a/h)</p>
+                </div>
+                <div class="theory-topic">
+                    <h3>Tangente (tan θ)</h3>
+                    <p>La Tangente de un ángulo θ es la razón entre el cateto opuesto y el cateto adyacente.</p>
+                    <p><strong>Fórmula:</strong> tan(θ) = Cateto Opuesto / Cateto Adyacente (o/a)</p>
+                </div>
+            </div>
+            <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
+        </div>
+
+        <!-- Achievements Screen -->
+        <div id="achievements-screen" class="screen">
+            <h2>Mis Logros</h2>
+            <div id="achievements-list">
+                <!-- Achievements will be populated by JS -->
+            </div>
+            <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
+        </div>
+        <!-- About Screen -->
+<div id="about-screen" class="screen">
+    <h2 class="about-title">Acerca de Trigonomix</h2>
+    <p class="about-subtitle">Aprende trigonometría de forma interactiva y divertida</p>
+    
+    <div class="about-content">
+        <section class="about-card">
+            <h3>¿Qué es Trigonomix?</h3>
+            <p>Trigonomix es una aplicación educativa diseñada para hacer el aprendizaje de las razones trigonométricas más accesible, interactivo y entretenido para estudiantes.</p>
+        </section>
+        
+        <section class="about-card">
+            <h3>Objetivo educativo</h3>
+            <p>Nuestra app ayuda a comprender y practicar los conceptos fundamentales de trigonometría a través de:</p>
+            <ul class="feature-list">
+                <li>Explicaciones teóricas claras</li>
+                <li>Ejercicios prácticos graduados por dificultad</li>
+                <li>Retroalimentación inmediata</li>
+                <li>Sistema de logros motivadores</li>
+            </ul>
+        </section>
+        
+        <section class="about-card">
+            <h3>¿Cómo aplicamos la trigonometría?</h3>
+            <p>En Trigonomix trabajamos con las tres razones trigonométricas básicas:</p>
+            <div class="trig-functions">
+                <div class="trig-function">
+                    <span class="trig-icon">S</span>
+                    <strong>Seno</strong> (sen θ) = Opuesto/Hipotenusa
+                </div>
+                <div class="trig-function">
+                    <span class="trig-icon">C</span>
+                    <strong>Coseno</strong> (cos θ) = Adyacente/Hipotenusa
+                </div>
+                <div class="trig-function">
+                    <span class="trig-icon">T</span>
+                    <strong>Tangente</strong> (tan θ) = Opuesto/Adyacente
+                </div>
+            </div>
+        </section>
+        
+        <section class="about-card">
+            <h3>¿Qué nos hace diferentes?</h3>
+            <p>Trigonomix combina lo mejor de la educación tradicional con las ventajas de la tecnología:</p>
+            <ul class="feature-list">
+                <li>Aprendizaje gamificado con puntajes y logros</li>
+                <li>Adaptación al ritmo de cada estudiante</li>
+                <li>Visualizaciones interactivas de conceptos abstractos</li>
+                <li>Disponibilidad 24/7 para practicar cuando quieras</li>
+            </ul>
+        </section>
+        
+        <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
+    </div>
+</div>
+
+<!-- Pantallas para modo multijugador -->
+<!-- Pantalla de configuración multijugador -->
+<div id="multiplayer-setup-screen" class="screen">
+    <h2 class="multiplayer-title">Modo 2 Jugadores</h2>
+    <div class="player-inputs-container">
+        <div class="player-input-group">
+            <label for="player1-name-input">Nombre del Jugador 1:</label>
+            <input type="text" id="player1-name-input" placeholder="Jugador 1" maxlength="20">
+        </div>
+        <div class="player-input-group">
+            <label for="player2-name-input">Nombre del Jugador 2:</label>
+            <input type="text" id="player2-name-input" placeholder="Jugador 2" maxlength="20">
+        </div>
+    </div>
+    
+    <div class="questions-selector">
+        <label>Número de preguntas:</label>
+        <div class="questions-options">
+            <div class="question-option" data-questions="10">10</div>
+            <div class="question-option selected" data-questions="20">20</div>
+            <div class="question-option" data-questions="30">30</div>
+        </div>
+    </div>
+    
+    <button id="start-multiplayer-button" class="action-button">Comenzar Partida</button>
+    <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
+</div>
+
+<!-- Pantalla de juego multijugador -->
+<div id="multiplayer-game-screen" class="screen">
+    <div class="player-turn-indicator player1-turn">
+        Turno de: <span id="current-player-name">Jugador 1</span>
+    </div>
+    
+    <div class="scores-container">
+        <div class="player-score active" id="player1-score">
+            <span class="player-name" id="display-player1-name">Jugador 1</span>
+            <span class="player-points" id="player1-points">0</span>
+        </div>
+        <div class="player-score" id="player2-score">
+            <span class="player-name" id="display-player2-name">Jugador 2</span>
+            <span class="player-points" id="player2-points">0</span>
+        </div>
+    </div>
+    
+    <h3 id="multiplayer-question-text">Cargando pregunta...</h3>
+    <div id="multiplayer-question-image-container">
+        <img id="multiplayer-question-image" src="" alt="Diagrama de la pregunta" style="display:none;"> 
+        <p id="multiplayer-image-value-info"></p>
+    </div>
+    <div id="multiplayer-options-container">
+        <!-- Las opciones serán agregadas por JavaScript -->
+    </div>
+    <p id="multiplayer-feedback-text" class="feedback-animation"></p>
+    <button id="multiplayer-next-question-button" class="action-button" style="display:none;">Siguiente Pregunta</button>
+    <button id="quit-multiplayer-button" class="nav-button" data-target="start-screen">Salir del Juego</button>
+</div>
+
+<!-- Pantalla de resultados multijugador -->
+<div id="multiplayer-results-screen" class="screen">
+    <h2 class="results-title">Resultados del Juego</h2>
+    
+    <div id="winner-container">
+        <!-- Será completado dinámicamente por JS dependiendo si hay ganador o empate -->
+    </div>
+    
+    <div class="players-results-container">
+        <div class="player-result-card" id="player1-result">
+            <h3 class="result-player-name" id="result-player1-name">Jugador 1</h3>
+            <div class="player-stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="player1-final-points">0</div>
+                    <div class="stat-label">Puntos</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="player1-correct-answers">0</div>
+                    <div class="stat-label">Correctas</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="player1-incorrect-answers">0</div>
+                    <div class="stat-label">Incorrectas</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="player-result-card" id="player2-result">
+            <h3 class="result-player-name" id="result-player2-name">Jugador 2</h3>
+            <div class="player-stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="player2-final-points">0</div>
+                    <div class="stat-label">Puntos</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="player2-correct-answers">0</div>
+                    <div class="stat-label">Correctas</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="player2-incorrect-answers">0</div>
+                    <div class="stat-label">Incorrectas</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <button id="play-again-multiplayer-button" class="action-button">Jugar de Nuevo</button>
+    <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
+</div>
+
+        <!-- NUEVAS PANTALLAS PARA MODO ONLINE -->
+        <!-- Pantalla de menú multijugador online -->
+        <div id="online-menu-screen" class="screen">
+            <h2 class="online-title">Multijugador Online</h2>
+            <div class="online-options">
+                <button id="create-room-button" class="action-button online-option">
+                    <span class="option-icon">🏠</span>
+                    <span class="option-text">Crear Sala</span>
+                </button>
+                <button id="join-room-button" class="action-button online-option">
+                    <span class="option-icon">🚪</span>
+                    <span class="option-text">Unirse a Sala</span>
+                </button>
+            </div>
+            <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
+        </div>
+
+        <!-- Pantalla crear sala -->
+        <div id="create-room-screen" class="screen">
+            <h2 class="online-title">Crear Sala</h2>
+            <div class="room-setup-container">
+                <div class="host-settings">
+                    <div class="questions-selector">
+                        <label>Número de preguntas:</label>
+                        <div class="questions-options">
+                            <div class="question-option" data-questions="10">10</div>
+                            <div class="question-option selected" data-questions="20">20</div>
+                            <div class="question-option" data-questions="30">30</div>
+                        </div>
+                    </div>
+                </div>
+                <button id="create-room-confirm-button" class="action-button">Crear Sala</button>
+            </div>
+            <button class="nav-button" data-target="online-menu-screen">Volver</button>
+        </div>
+
+        <!-- Pantalla unirse a sala -->
+        <div id="join-room-screen" class="screen">
+            <h2 class="online-title">Unirse a Sala</h2>
+            <div class="room-join-container">
+                <div class="room-code-input-container">
+                    <label for="room-code-input">Código de Sala:</label>
+                    <input type="text" id="room-code-input" placeholder="Ingresa código de 6 dígitos" maxlength="6">
+                </div>
+                <div id="join-room-error" class="room-join-error"></div>
+                <button id="join-room-confirm-button" class="action-button">Unirse a Sala</button>
+            </div>
+            <button class="nav-button" data-target="online-menu-screen">Volver</button>
+        </div>
+
+        <!-- Pantalla de sala de espera -->
+        <div id="waiting-room-screen" class="screen">
+            <h2 class="online-title">Sala de Espera</h2>
+            <div class="room-info">
+                <div class="room-code-display">
+                    Código de sala: <span id="room-code-display">------</span>
+                    <button id="copy-room-code" class="copy-button">Copiar</button>
+                </div>
+            </div>
+            <div class="players-list">
+                <div class="player-item host-player" id="host-player-item">
+                    <span class="player-icon">👑</span>
+                    <span class="player-name" id="host-player-name">Anfitrión</span>
+                    <span class="player-status ready">Listo</span>
+                </div>
+                <div class="player-item guest-player" id="guest-player-item">
+                    <span class="player-icon">👤</span>
+                    <span class="player-name" id="guest-player-name">Esperando jugador...</span>
+                    <span class="player-status">-</span>
+                </div>
+            </div>
+            <div class="waiting-room-controls">
+                <button id="start-online-game-button" class="action-button" disabled>Comenzar Juego</button>
+                <div class="game-setup-info">
+                    <p>Preguntas: <span id="questions-count">20</span></p>
+                </div>
+            </div>
+            <button id="leave-room-button" class="nav-button">Abandonar Sala</button>
+        </div>
+
+        <!-- Pantalla de juego online -->
+        <div id="online-game-screen" class="screen">
+            <div class="online-game-header">
+                <div class="player-turn-indicator" id="online-turn-indicator">
+                    Turno de: <span id="online-current-player-name">Jugador</span>
+                </div>
+                <div class="question-counter-online">
+                    Pregunta: <span id="online-question-counter">1/20</span>
+                </div>
+                <div class="online-timer" id="online-timer">
+                    Tiempo: <span id="online-timer-value">15</span>
+                </div>
+            </div>
+            
+            <div class="online-players-score">
+                <div class="online-player-score active" id="online-player1-score">
+                    <span class="player-name" id="online-player1-name">Jugador 1</span>
+                    <span class="player-points" id="online-player1-points">0</span>
+                </div>
+                <div class="online-player-score" id="online-player2-score">
+                    <span class="player-name" id="online-player2-name">Jugador 2</span>
+                    <span class="player-points" id="online-player2-points">0</span>
+                </div>
+            </div>
+            
+            <h3 id="online-question-text">Cargando pregunta...</h3>
+            <div id="online-question-image-container">
+                <img id="online-question-image" src="" alt="Diagrama de la pregunta" style="display:none;"> 
+                <p id="online-image-value-info"></p>
+            </div>
+            <div id="online-options-container">
+                <!-- Las opciones serán agregadas por JavaScript -->
+            </div>
+            <p id="online-feedback-text" class="feedback-animation"></p>
+        </div>
+
+        <!-- Pantalla de resultados online -->
+        <div id="online-results-screen" class="screen">
+            <h2 class="results-title">Resultados del Juego Online</h2>
+            
+            <div id="online-winner-container">
+                <!-- Será completado dinámicamente por JS dependiendo si hay ganador o empate -->
+            </div>
+            
+            <div class="players-results-container">
+                <div class="player-result-card" id="online-player1-result">
+                    <h3 class="result-player-name" id="online-result-player1-name">Jugador 1</h3>
+                    <div class="player-stats">
+                        <div class="stat-item">
+                            <div class="stat-value" id="online-player1-final-points">0</div>
+                            <div class="stat-label">Puntos</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="online-player1-correct-answers">0</div>
+                            <div class="stat-label">Correctas</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="online-player1-incorrect-answers">0</div>
+                            <div class="stat-label">Incorrectas</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="player-result-card" id="online-player2-result">
+                    <h3 class="result-player-name" id="online-result-player2-name">Jugador 2</h3>
+                    <div class="player-stats">
+                        <div class="stat-item">
+                            <div class="stat-value" id="online-player2-final-points">0</div>
+                            <div class="stat-label">Puntos</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="online-player2-correct-answers">0</div>
+                            <div class="stat-label">Correctas</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="online-player2-incorrect-answers">0</div>
+                            <div class="stat-label">Incorrectas</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="online-results-controls">
+                <button id="online-play-again-button" class="action-button">Jugar de Nuevo</button>
+                <button id="online-back-to-lobby-button" class="action-button">Volver al Lobby</button>
+                <button class="nav-button" data-target="start-screen">Salir al Menú Principal</button>
+            </div>
+        </div>
+        
+        <!-- Pantalla de error de conexión -->
+        <div id="connection-error-screen" class="screen">
+            <h2 class="error-title">Error de Conexión</h2>
+            <p class="error-message" id="connection-error-message">
+                Se ha perdido la conexión con el servidor.
+            </p>
+            <button class="action-button" id="retry-connection-button">Reintentar Conexión</button>
+            <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
+        </div>
+
+    </div>
+    
+    <script src="script.js"></script>
+    <script src="online.js"></script>
+    
+        
+    
+    <script>
+        document.getElementById('toggle-theme-button').addEventListener('click', function () {
+            document.body.classList.toggle('dark-mode');
+        
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            this.textContent = isDarkMode ? 'Modo claro' : 'Modo oscuro';
+            
+        });
+    </script>
+    <script>
+        // Crea un objeto Audio para el sonido
+        const clickSound = new Audio('click.mp3');
+
+        // Selecciona todos los botones
+        const buttons = document.querySelectorAll('button');
+
+        // Agrega evento click a cada botón para reproducir sonido
+        buttons.forEach(button => {
+            button.addEventListener('click', () => {
+            // Reinicia el sonido para que pueda sonar repetido rápido
+            clickSound.currentTime = 0;
+            clickSound.play();
+            });
+        });
+    </script>
+</body>
+</html>
