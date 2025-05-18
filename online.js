@@ -114,18 +114,46 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         // Escuchar evento de actualización de puntaje en tiempo real (ambos jugadores)
         onlineGameState.socket.on('answerResult', ({ players, playerId, isCorrect }) => {
+            console.log('Recibido answerResult con players:', players);
+            
             if (players && players.length === 2) {
-                players.forEach(player => {
-                    if (onlineGameState.playerInfo && player.id === onlineGameState.playerInfo.id) {
-                        Object.assign(onlineGameState.playerInfo, player);
-                    } else if (onlineGameState.otherPlayerInfo && player.id === onlineGameState.otherPlayerInfo.id) {
-                        Object.assign(onlineGameState.otherPlayerInfo, player);
+                // Actualizar ambos jugadores directamente desde los datos recibidos
+                const hostPlayer = players.find(p => p.isHost);
+                const guestPlayer = players.find(p => !p.isHost);
+                
+                if (hostPlayer && guestPlayer) {
+                    // Si soy el host, actualizo mi info con hostPlayer y la del otro con guestPlayer
+                    if (onlineGameState.isHost) {
+                        onlineGameState.playerInfo = hostPlayer;
+                        onlineGameState.otherPlayerInfo = guestPlayer;
+                    } else {
+                        // Si soy el invitado, actualizo mi info con guestPlayer y la del otro con hostPlayer
+                        onlineGameState.playerInfo = guestPlayer;
+                        onlineGameState.otherPlayerInfo = hostPlayer;
                     }
-                });
+                    
+                    // Actualizar UI directamente
+                    if (onlineGameState.isHost) {
+                        onlinePlayer1Name.textContent = hostPlayer.name;
+                        onlinePlayer1Points.textContent = hostPlayer.score;
+                        onlinePlayer2Name.textContent = guestPlayer.name;
+                        onlinePlayer2Points.textContent = guestPlayer.score;
+                        
+                        // Animar ambos puntajes
+                        animateScoreUpdate(onlinePlayer1Points);
+                        animateScoreUpdate(onlinePlayer2Points);
+                    } else {
+                        onlinePlayer2Name.textContent = guestPlayer.name;
+                        onlinePlayer2Points.textContent = guestPlayer.score;
+                        onlinePlayer1Name.textContent = hostPlayer.name;
+                        onlinePlayer1Points.textContent = hostPlayer.score;
+                        
+                        // Animar ambos puntajes
+                        animateScoreUpdate(onlinePlayer1Points);
+                        animateScoreUpdate(onlinePlayer2Points);
+                    }
+                }
             }
-            updateOnlinePlayersUI();
-            animateScoreUpdate(onlinePlayer1Points);
-            animateScoreUpdate(onlinePlayer2Points);
         });
         try {
             // Crear conexión
@@ -213,16 +241,23 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Evento cuando otro jugador se une a la sala
             onlineGameState.socket.on('playerJoined', ({ player }) => {
+                console.log('Jugador unido a la sala:', player);
+                
+                // Guardar la información del otro jugador
                 onlineGameState.otherPlayerInfo = player;
                 
                 // Actualizar UI
-                guestPlayerName.textContent = player.name;
-                guestPlayerItem.querySelector('.player-status').className = 'player-status ready';
-                guestPlayerItem.querySelector('.player-status').textContent = 'Listo';
-                
-                // Habilitar botón de inicio si soy el host
                 if (onlineGameState.isHost) {
+                    // Si soy host, el otro jugador es el invitado
+                    guestPlayerName.textContent = player.name;
+                    guestPlayerItem.querySelector('.player-status').className = 'player-status ready';
+                    guestPlayerItem.querySelector('.player-status').textContent = 'Listo';
+                    
+                    // Habilitar botón de inicio
                     startOnlineGameButton.disabled = false;
+                } else {
+                    // Si soy invitado, el otro jugador es el host
+                    hostPlayerName.textContent = player.name;
                 }
             });
             
@@ -233,14 +268,41 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             // Evento cuando el juego comienza
-            onlineGameState.socket.on('gameStarted', ({ firstPlayerId, question }) => {
+            onlineGameState.socket.on('gameStarted', ({ firstPlayerId, question, players }) => {
                 onlineGameState.gameActive = true;
                 onlineGameState.currentQuestion = question;
                 onlineGameState.isMyTurn = firstPlayerId === onlineGameState.socket.id;
                 onlineGameState.currentQuestionIndex = 0;
                 
-                // Actualizar información de jugadores
-                updateOnlinePlayersUI();
+                // Si recibimos información de jugadores, actualizarla
+                if (players && players.length === 2) {
+                    const hostPlayer = players.find(p => p.isHost);
+                    const guestPlayer = players.find(p => !p.isHost);
+                    
+                    if (hostPlayer && guestPlayer) {
+                        // Actualizar información de jugadores según mi rol
+                        if (onlineGameState.isHost) {
+                            onlineGameState.playerInfo = hostPlayer;
+                            onlineGameState.otherPlayerInfo = guestPlayer;
+                        } else {
+                            onlineGameState.playerInfo = guestPlayer;
+                            onlineGameState.otherPlayerInfo = hostPlayer;
+                        }
+                    }
+                }
+                
+                // Asegurar que los puntajes se muestren correctamente
+                if (onlineGameState.isHost) {
+                    onlinePlayer1Name.textContent = onlineGameState.playerInfo.name;
+                    onlinePlayer1Points.textContent = onlineGameState.playerInfo.score || 0;
+                    onlinePlayer2Name.textContent = onlineGameState.otherPlayerInfo.name;
+                    onlinePlayer2Points.textContent = onlineGameState.otherPlayerInfo.score || 0;
+                } else {
+                    onlinePlayer2Name.textContent = onlineGameState.playerInfo.name;
+                    onlinePlayer2Points.textContent = onlineGameState.playerInfo.score || 0;
+                    onlinePlayer1Name.textContent = onlineGameState.otherPlayerInfo.name;
+                    onlinePlayer1Points.textContent = onlineGameState.otherPlayerInfo.score || 0;
+                }
                 
                 // Actualizar contador de preguntas
                 onlineQuestionCounter.textContent = `1/${onlineGameState.totalQuestions}`;

@@ -289,10 +289,18 @@ function startGame(roomCode) {
     room.gameState.currentQuestionIndex = 0;
     room.gameState.currentTurn = 0;
     
-    // Notificar inicio del juego
+    // Notificar inicio del juego con información completa de jugadores
     io.to(roomCode).emit('gameStarted', {
         firstPlayerId: room.players[0].id,
-        question: getNextQuestion(roomCode)
+        question: getNextQuestion(roomCode),
+        players: room.players.map(p => ({
+            id: p.id,
+            name: p.name,
+            score: p.score,
+            correctAnswers: p.correctAnswers,
+            incorrectAnswers: p.incorrectAnswers,
+            isHost: p.isHost
+        }))
     });
 }
 
