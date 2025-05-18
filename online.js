@@ -124,12 +124,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 onlineGameState.otherPlayerInfo.correctAnswers = correctAnswers;
                 onlineGameState.otherPlayerInfo.incorrectAnswers = incorrectAnswers;
             }
+            // Forzar actualización de ambos jugadores en la UI
             updateOnlinePlayersUI();
+
             // Animación de puntaje actualizado
-            if (playerId === (onlineGameState.playerInfo && onlineGameState.playerInfo.id)) {
-                animateScoreUpdate(onlineGameState.isHost ? onlinePlayer1Points : onlinePlayer2Points);
+            // Mostrar animación en ambos lados para asegurar feedback visual
+            if (onlineGameState.isHost) {
+                animateScoreUpdate(onlinePlayer1Points);
+                animateScoreUpdate(onlinePlayer2Points);
             } else {
-                animateScoreUpdate(onlineGameState.isHost ? onlinePlayer2Points : onlinePlayer1Points);
+                animateScoreUpdate(onlinePlayer1Points);
+                animateScoreUpdate(onlinePlayer2Points);
             }
         });
         try {
