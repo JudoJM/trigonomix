@@ -3,10 +3,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trigonomix</title>
-    <link rel="shortcut icon" href="logo.ico" type="image/x-icon">
-
-
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="logo.ico">
     <script type="importmap">
     {
         "imports": {
@@ -14,51 +12,24 @@
         }
     }
     </script>
-    <!-- Cargar Socket.io desde CDN -->
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <!-- Cargar Socket.io desde CDN directamente -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" 
+            integrity="sha384-mZLF4UVrpi/QTWPA7BjNPEnkIfRFn4ZEO3Qt/HFklTJBj/gBOV8G3HcKn4NfQblz" 
+            crossorigin="anonymous">
+    </script>
     <script>
         // Verificar si Socket.io se cargó correctamente
-        function checkSocketIO() {
-            if (typeof io === 'undefined') {
-                console.error('Error: No se pudo cargar Socket.io');
-                // Mostrar mensaje de error al usuario
-                const errorDiv = document.createElement('div');
-                errorDiv.style.position = 'fixed';
-                errorDiv.style.top = '10px';
-                errorDiv.style.left = '50%';
-                errorDiv.style.transform = 'translateX(-50%)';
-                errorDiv.style.backgroundColor = '#ffebee';
-                errorDiv.style.color = '#c62828';
-                errorDiv.style.padding = '10px 20px';
-                errorDiv.style.borderRadius = '4px';
-                errorDiv.style.zIndex = '1000';
-                errorDiv.textContent = 'Error: No se pudo cargar la funcionalidad en línea. Por favor, verifica tu conexión a Internet y recarga la página.';
-                document.body.appendChild(errorDiv);
-                return false;
-            }
-            console.log('Socket.io cargado correctamente');
-            return true;
-        }
-
-        // Función para inicializar la conexión cuando todo esté listo
-        function initOnlineMode() {
-            if (checkSocketIO() && typeof initSocketConnection === 'function') {
-                console.log('Inicializando conexión Socket.io...');
-                initSocketConnection();
+        window.addEventListener('DOMContentLoaded', function() {
+            if (typeof io !== 'undefined') {
+                console.log('Socket.io cargado correctamente');
+                // Si tienes una función de inicialización, puedes llamarla aquí
+                if (typeof initSocketConnection === 'function') {
+                    initSocketConnection();
+                }
             } else {
-                console.warn('La función initSocketConnection no está disponible aún');
-                // Reintentar después de un breve retraso
-                setTimeout(initOnlineMode, 500);
+                console.error('Error al cargar Socket.io');
             }
-        }
-
-        // Inicializar cuando el DOM esté completamente cargado
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initOnlineMode);
-        } else {
-            // Si el DOM ya está cargado, inicializar directamente
-            initOnlineMode();
-        }
+        });
     </script>
 </head>
 <body>
@@ -84,22 +55,22 @@
             <button id="history-button" class="secondary-button">📜Historial</button>
             <button id="achievements-button" class="secondary-button">🏆Logros</button>
             <button id="authors-button" class="secondary-button">🧑‍💻Autores</button>
-            <button id="about-button" class="secondary-button">ℹ️ Acerca de</button>
+            <button id="about-button" class="secondary-button">ℹ️Acerca de</button>
         </div>
 
         <!-- Level Select Screen -->
         <div id="level-select-screen" class="screen">
             <h2>Selecciona un Nivel</h2>
             <button id="level-easy" data-level="easy" class="level-button action-button">
-                🟢 Fácil (Conceptos)
+                🟢Fácil (Conceptos)
                 <span class="level-highscore" data-level="easy">Mejor: 0 (CPU)</span>
             </button>
             <button id="level-intermediate" data-level="intermediate" class="level-button action-button">
-                🟡 Intermedio (Identificación)
+                🟡Intermedio (Identificación)
                 <span class="level-highscore" data-level="intermediate">Mejor: 0 (CPU)</span>
             </button>
             <button id="level-difficult" data-level="difficult" class="level-button action-button">
-               🔴 Difícil (Relaciones)
+                🔴Difícil (Relaciones)
                 <span class="level-highscore" data-level="difficult">Mejor: 0 (CPU)</span>
             </button>
             <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
@@ -557,9 +528,6 @@
                 <div class="survival-score-container">
                     <span id="survival-score">Aciertos: 0</span>
                 </div>
-                <div class="survival-question-counter">
-                    <span id="survival-question-number">Pregunta: 1</span>
-                </div>
                 <div class="survival-timer-container">
                     <div id="survival-timer-text">Tiempo: 20</div>
                     <div id="survival-timer-bar-container">
@@ -596,69 +564,34 @@
 
     </div>
     
-    <!-- Scripts -->
+    <script src="script.js"></script>
+    <script src="online.js"></script>
+    
+        
+    
     <script>
-        // Script para el botón de cambio de tema
-        document.addEventListener('DOMContentLoaded', function() {
-            const toggleButton = document.getElementById('toggle-theme-button');
-            if (toggleButton) {
-                toggleButton.addEventListener('click', function () {
-                    document.body.classList.toggle('dark-mode');
-                    const isDarkMode = document.body.classList.contains('dark-mode');
-                    this.textContent = isDarkMode ? 'Modo claro' : 'Modo oscuro';
-                });
-            }
+        document.getElementById('toggle-theme-button').addEventListener('click', function () {
+            document.body.classList.toggle('dark-mode');
+        
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            this.textContent = isDarkMode ? 'Modo claro' : 'Modo oscuro';
+            
         });
     </script>
-    
-    <!-- Script para efectos de sonido -->
     <script>
         // Crea un objeto Audio para el sonido
         const clickSound = new Audio('click.mp3');
 
-        // Función para inicializar los efectos de sonido
-        function initSoundEffects() {
-            // Selecciona todos los botones
-            const buttons = document.querySelectorAll('button');
+        // Selecciona todos los botones
+        const buttons = document.querySelectorAll('button');
 
-            // Agrega evento click a cada botón para reproducir sonido
-            buttons.forEach(button => {
-                button.addEventListener('click', () => {
-                    // Reinicia el sonido para que pueda sonar repetido rápido
-                    if (clickSound) {
-                        clickSound.currentTime = 0;
-                        clickSound.play().catch(e => console.error('Error reproduciendo sonido:', e));
-                    }
-                });
+        // Agrega evento click a cada botón para reproducir sonido
+        buttons.forEach(button => {
+            button.addEventListener('click', () => {
+            // Reinicia el sonido para que pueda sonar repetido rápido
+            clickSound.currentTime = 0;
+            clickSound.play();
             });
-        }
-
-
-        // Inicializar efectos de sonido cuando el DOM esté completamente cargado
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initSoundEffects);
-        } else {
-            initSoundEffects();
-        }
-    </script>
-    
-    <!-- Script para el modo online - cargado con defer para asegurar que se ejecute en orden -->
-    <script src="online.js"></script>
-    
-    <!-- Script principal - cargado al final -->
-    <script src="script.js" type="module"></script>
-    
-    <!-- Inicialización de Socket.io -->
-    <script>
-        // Esperar a que todo el DOM esté listo
-        document.addEventListener('DOMContentLoaded', function() {
-            // Verificar si el botón de online existe antes de intentar inicializar
-            if (document.getElementById('online-button') && typeof initSocketConnection === 'function') {
-                console.log('Inicializando Socket.io...');
-                initSocketConnection();
-            } else {
-                console.warn('No se pudo inicializar Socket.io: botón no encontrado o función no disponible');
-            }
         });
     </script>
 </body>

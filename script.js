@@ -11,13 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
         PERFECT_EASY: 'PERFECT_EASY',
         PERFECT_INTERMEDIATE: 'PERFECT_INTERMEDIATE',
         PERFECT_DIFFICULT: 'PERFECT_DIFFICULT',
-        SURVIVAL_MASTER: 'SURVIVAL_MASTER',
-        RAPIDO_Y_PRECISO: 'RAPIDO_Y_PRECISO',
-        MAESTRO_DE_LOS_TRIANGULOS: 'MAESTRO_DE_LOS_TRIANGULOS',
-        NO_SIN_MI_CAFE: 'NO_SIN_MI_CAFE',
-        REY_DE_LA_TRIGONOMETRIA: 'REY_DE_LA_TRIGONOMETRIA',
-        VELOCIDAD_RAYO: 'VELOCIDAD_RAYO',
-        RAPIDO_COMO_EL_RAYO: 'RAPIDO_COMO_EL_RAYO'
+        SURVIVAL_MASTER: 'SURVIVAL_MASTER'
     };
 
     const ACHIEVEMENT_DETAILS = {
@@ -25,13 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
         [ACHIEVEMENT_IDS.PERFECT_EASY]: { name: "Balon de oro", description: "Completaste el nivel Fácil con puntaje perfecto." },
         [ACHIEVEMENT_IDS.PERFECT_INTERMEDIATE]: { name: "El proximo Albert Einstein", description: "Completaste el nivel Intermedio con puntaje perfecto." },
         [ACHIEVEMENT_IDS.PERFECT_DIFFICULT]: { name: "El orgullo de Pitágoras", description: "Completaste el nivel Difícil con puntaje perfecto." },
-        [ACHIEVEMENT_IDS.SURVIVAL_MASTER]: { name: "Maestro de la Supervivencia", description: "Respondiste todas las preguntas correctamente en el Modo Supervivencia." },
-        [ACHIEVEMENT_IDS.RAPIDO_Y_PRECISO]: { name: "¡Rápido y preciso!", description: "Responde 10 preguntas correctamente en menos de 3 segundos cada una." },
-        [ACHIEVEMENT_IDS.MAESTRO_DE_LOS_TRIANGULOS]: { name: "Maestro de los Triángulos", description: "Responde correctamente 50 preguntas sobre triángulos rectángulos." },
-        [ACHIEVEMENT_IDS.NO_SIN_MI_CAFE]: { name: "¡No sin mi café!", description: "Juega durante más de 30 minutos en una sola sesión." },
-        [ACHIEVEMENT_IDS.REY_DE_LA_TRIGONOMETRIA]: { name: "Rey de la Trigonometría", description: "Completa los tres niveles de dificultad con puntaje perfecto en el mismo día." },
-        [ACHIEVEMENT_IDS.VELOCIDAD_RAYO]: { name: "¡Velocidad rayo!", description: "Responde 5 preguntas seguidas correctamente en menos de 15 segundos en total." },
-        [ACHIEVEMENT_IDS.RAPIDO_COMO_EL_RAYO]: { name: "¡Rápido como el rayo!", description: "Responde correctamente una pregunta en menos de 5 segundos.", icon: "⚡" }
+        [ACHIEVEMENT_IDS.SURVIVAL_MASTER]: { name: "Maestro de la Supervivencia", description: "Respondiste todas las preguntas correctamente en el Modo Supervivencia." }
     };
     
 
@@ -41,24 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {string} screenId - The ID of the screen to show.
      */
     function showScreen(screenId) {
-        // Si estamos saliendo del modo supervivencia, limpiar todo
-        const currentActiveScreen = document.querySelector('.screen.active');
-        if (currentActiveScreen && currentActiveScreen.id === 'modo-supervivencia' && screenId !== 'modo-supervivencia') {
-            // Detener cualquier temporizador en curso
-            stopSurvivalTimer();
-            // Restablecer los datos del juego
-            survivalData = {
-                score: 0,
-                currentQuestionIndex: 0,
-                currentQuestionAnswered: false,
-                allQuestions: []
-            };
-            // Salir de la función para evitar que se muestre la pantalla de resultados
-            if (screenId === 'survival-results-screen') {
-                screenId = 'start-screen';
-            }
-        }
-        
         let foundActive = false;
         screens.forEach(screen => {
             if (screen.id === screenId) {
@@ -71,18 +41,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         if (!foundActive) {
             console.error("Screen not found:", screenId);
-        }
-        
-        // Special handling for specific screens
-        if (screenId === 'level-select-screen') {
-            displayHighScoresOnLevelSelect();
-        } else if (screenId === 'achievements-screen') {
-            displayAchievements();
-        } else if (screenId === 'history-screen') {
-            displayHistory();
-        } else if (screenId === 'start-screen') {
-            // Reset any ongoing game when returning to start screen
-            stopQuestionTimer();
         }
     }
 
@@ -117,26 +75,13 @@ document.addEventListener('DOMContentLoaded', () => {
         currentQuestionIndex: 0,
         currentLevelQuestions: [],
         currentQuestionAnswered: false,
-        timeRemaining: 0,
-        timer: null,
-        playerName: 'Jugador', // Default player name
+        playerName: "Jugador", // Default player name
         highScores: { 
             easy: { score: 0, name: "CPU" }, 
             intermediate: { score: 0, name: "CPU" }, 
             difficult: { score: 0, name: "CPU" } 
         },
-        playerAchievements: {}, // Stores unlocked achievements, e.g., { FAST_ANSWER: "10/27/2023" }
-        stats: {
-            sessionStartTime: Date.now(),
-            lastActivityTime: Date.now(),
-            totalPlayTime: 0,
-            levelsCompleted: {
-                easy: false,
-                intermediate: false,
-                difficult: false
-            },
-            lastLevelCompletionDate: null
-        }
+        playerAchievements: {} // Stores unlocked achievements, e.g., { FAST_ANSWER: "10/27/2023" }
     };
 
     // Initialize playerAchievements with all possible achievements set to null (locked)
@@ -632,20 +577,8 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     // --- Audio Handling ---
-    const SOUNDS = {
-        CORRECT: 'correct.mp3',
-        INCORRECT: 'incorrect.mp3',
-        CLICK: 'click.mp3'
-    };
-    
-    // Precargar sonidos
-    const audioElements = {};
-    Object.entries(SOUNDS).forEach(([key, src]) => {
-        const audio = new Audio(src);
-        audio.preload = 'auto';
-        audio.load();
-        audioElements[key] = audio;
-    });
+    let audioContext;
+    const audioBuffers = {};
 
     // Timer variables
     let questionTimerInterval = null;
@@ -658,145 +591,71 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     let timePerQuestion = DEFAULT_TIME_PER_QUESTION;
 
-    /**
-     * Reproduce un sonido de retroalimentación
-     * @param {boolean} isCorrect - true si la respuesta fue correcta, false si fue incorrecta
-     */
-    function playSoundFeedback(isCorrect) {
-        try {
-            const soundType = isCorrect ? 'CORRECT' : 'INCORRECT';
-            const audio = audioElements[soundType];
-            
-            // Si el audio ya existe, intentar reproducirlo
-            if (audio) {
-                // Reiniciar el audio si ya se estaba reproduciendo
-                audio.currentTime = 0;
-                audio.play().catch(error => {
-                    console.error(`Error al reproducir sonido ${soundType}:`, error);
-                    
-                    // Si falla, intentar con un nuevo elemento de audio
-                    const newAudio = new Audio(SOUNDS[soundType]);
-                    newAudio.play().catch(e => console.error('Error al reproducir sonido de respaldo:', e));
-                });
-            } else {
-                // Si por alguna razón no existe el audio, crearlo y reproducirlo
-                console.warn(`Audio ${soundType} no precargado, cargando bajo demanda`);
-                const newAudio = new Audio(SOUNDS[soundType]);
-                newAudio.play().catch(e => console.error('Error al reproducir sonido bajo demanda:', e));
-            }
-        } catch (error) {
-            console.error('Error en playSoundFeedback:', error);
-        }
-    }
-    
-    // Función para reproducir sonido de click
-    function playClickSound() {
-        try {
-            const audio = audioElements['CLICK'];
-            if (audio) {
-                audio.currentTime = 0;
-                audio.play().catch(error => {
-                    console.error('Error al reproducir sonido de click:', error);
-                });
-            }
-        } catch (error) {
-            console.error('Error en playClickSound:', error);
+    /** Initializes the Web Audio API AudioContext. */
+    function initAudio() {
+        if (!audioContext && (window.AudioContext || window.webkitAudioContext)) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
         }
     }
 
-    // --- Achievements System ---
     /**
-     * Desbloquea un logro si no estaba desbloqueado previamente
-     * @param {string} achievementId - ID del logro a desbloquear
+     * Loads a sound file and decodes it into an AudioBuffer.
+     * @param {string} url - The URL of the sound file.
+     * @returns {Promise<AudioBuffer|null>} The decoded audio buffer or null on error.
      */
-    function unlockAchievement(achievementId) {
-        // Asegurarse de que gameData.playerAchievements existe
-        if (!gameData.playerAchievements) {
-            gameData.playerAchievements = {};
+    async function loadSound(url) {
+        initAudio();
+        if (!audioContext) return null;
+        if (audioBuffers[url]) return audioBuffers[url];
+
+        try {
+            const response = await fetch(url);
+            const arrayBuffer = await response.arrayBuffer();
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            audioBuffers[url] = audioBuffer;
+            return audioBuffer;
+        } catch (error) {
+            console.error(`Error loading sound ${url}:`, error);
+            return null;
         }
-        
-        // Si el logro ya está desbloqueado, no hacer nada
-        if (gameData.playerAchievements[achievementId]) {
-            return;
-        }
-        
-        // Agregar el logro con la fecha actual
-        gameData.playerAchievements[achievementId] = new Date().toLocaleDateString();
-        
-        // Mostrar notificación
-        const achievement = ACHIEVEMENT_DETAILS[achievementId];
-        if (achievement) {
-            showAchievementNotification(achievement.name, achievement.description);
-        }
-        
-        // Guardar cambios
-        saveData();
     }
     
     /**
-     * Muestra una notificación de logro desbloqueado
-     * @param {string} title - Título del logro
-     * @param {string} description - Descripción del logro
+     * Plays a decoded audio buffer.
+     * @param {AudioBuffer} buffer - The audio buffer to play.
      */
-    function showAchievementNotification(title, description) {
-        const notification = document.createElement('div');
-        notification.className = 'achievement-notification';
-        notification.innerHTML = `
-            <div class="achievement-icon">🏆</div>
-            <div class="achievement-content">
-                <div class="achievement-title">${title}</div>
-                <div class="achievement-desc">${description}</div>
-            </div>
-        `;
-        
-        document.body.appendChild(notification);
-        
-        // Animación de entrada
-        setTimeout(() => {
-            notification.classList.add('show');
-        }, 100);
-        
-        // Eliminar después de 5 segundos
-        setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => {
-                notification.remove();
-            }, 300);
-        }, 5000);
-    }
-    
-    // --- Tiempo de Juego ---
-    /**
-     * Verifica el tiempo de juego y desbloquea logros relacionados
-     */
-    function checkPlayTime() {
-        if (!gameData.stats) return;
-        
-        const now = Date.now();
-        const sessionDuration = now - gameData.stats.sessionStartTime;
-        
-        // Actualizar el tiempo de juego total (en milisegundos)
-        gameData.stats.totalPlayTime = (gameData.stats.totalPlayTime || 0) + (now - (gameData.stats.lastActivityTime || now));
-        gameData.stats.lastActivityTime = now;
-        
-        // Verificar logro "¡No sin mi café!" (30 minutos de juego)
-        if (gameData.stats.totalPlayTime >= 30 * 60 * 1000) { // 30 minutos en milisegundos
-            unlockAchievement(ACHIEVEMENT_IDS.NO_SIN_MI_CAFE);
+    function playDecodedSound(buffer) {
+        if (!audioContext || !buffer) return;
+        try {
+            const source = audioContext.createBufferSource();
+            source.buffer = buffer;
+            source.connect(audioContext.destination);
+            source.start(0);
+        } catch (error) {
+            console.error("Error playing sound:", error);
         }
     }
-    
-    // Verificar tiempo de juego periódicamente
-    setInterval(checkPlayTime, 30000); // Verificar cada 30 segundos
-    
+
+    /**
+     * Plays a sound effect based on whether the answer was correct.
+     * @param {boolean} isCorrect - True if the answer was correct, false otherwise.
+     */
+    async function playSoundFeedback(isCorrect) {
+        if (audioContext && audioContext.state === 'suspended') {
+            await audioContext.resume(); // Required for user-initiated audio playback
+        }
+        const soundUrl = isCorrect ? 'correct.mp3' : 'incorrect.mp3';
+        const buffer = await loadSound(soundUrl);
+        if (buffer) {
+            playDecodedSound(buffer);
+        }
+    }
+
     // --- LocalStorage for Data Persistence ---
     const STORAGE_KEY = 'trigoAprendePlusData'; // Updated key slightly
     /** Saves the current gameData to localStorage. */
     function saveData() {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(gameData));
-        } catch (e) {
-            console.error('Error saving game data:', e);
-        }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(gameData));
     }
     
     /** Loads gameData from localStorage. */
@@ -874,6 +733,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const name = playerNameInput.value.trim();
         gameData.playerName = name || "Jugador"; // Update player name from input
         saveData(); // Save name change
+        initAudio(); // Initialize audio on first user interaction
         showScreen('level-select-screen');
     });
     theoryButton.addEventListener('click', () => showScreen('theory-screen'));
@@ -896,8 +756,42 @@ document.addEventListener('DOMContentLoaded', () => {
     nextQuestionButton.addEventListener('click', goToNextQuestion);
     const quitGameButton = document.getElementById('quit-game-button');
     quitGameButton.addEventListener('click', () => {
-        stopQuestionTimer(); // Stop timer when quitting
-        showScreen('level-select-screen'); 
+        const survivalScreen = document.getElementById('modo-supervivencia');
+        if (survivalScreen && survivalScreen.classList.contains('active')) {
+            // Clear all timers
+            clearSurvivalTimers();
+            
+            // Reset survival data
+            survivalData = null;
+            
+            // Reset UI
+            if (survivalFeedbackText) {
+                survivalFeedbackText.className = 'feedback-animation';
+                survivalFeedbackText.textContent = '';
+            }
+            
+            // Reset options
+            if (survivalOptionsContainer) {
+                const optionButtons = survivalOptionsContainer.querySelectorAll('button');
+                optionButtons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.classList.remove('correct', 'incorrect');
+                });
+            }
+            
+            // Hide all screens and show start screen
+            const screens = document.querySelectorAll('.screen');
+            screens.forEach(screen => screen.classList.remove('active'));
+            
+            const startScreen = document.getElementById('start-screen');
+            if (startScreen) {
+                startScreen.classList.add('active');
+            }
+        } else {
+            // For regular game mode
+            stopQuestionTimer();
+            showScreen('level-select-screen');
+        }
     });
 
     playAgainButton.addEventListener('click', () => {
@@ -921,6 +815,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {string} level - The difficulty level ('easy', 'intermediate', 'difficult').
      */
     function startGame(level) {
+        initAudio(); // Ensure audio is ready
         gameData.currentLevel = level;
         timePerQuestion = TIME_CONFIG[level] || DEFAULT_TIME_PER_QUESTION; // Set time for this level
         // Create fresh copies of question objects for the current level to avoid state pollution
@@ -1002,75 +897,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     button.textContent = option.text;
                 }
                 // Pass the index in the shuffled array, the option object itself, and feedback messages
-                button.addEventListener('click', () => {
-                    // Verificar si la respuesta es correcta
-                    const isCorrect = option.correct;
-                    const timeTaken = timePerQuestion - timeLeft;
-                    
-                    // Reproducir sonido de retroalimentación
-                    playSoundFeedback(isCorrect);
-                    
-                    // Mostrar retroalimentación
-                    if (isCorrect) {
-                        feedbackTextDisplay.textContent = (question.feedback && question.feedback.correct) || "¡Correcto!";
-                        feedbackTextDisplay.classList.add('correct', 'show');
-                        currentScoreDisplay.classList.add('updated');
-                        setTimeout(() => currentScoreDisplay.classList.remove('updated'), 600);
-                        
-                        // Desbloquear logro si se responde en menos de 5 segundos
-                        if (timeTaken <= 5) { 
-                            unlockAchievement(ACHIEVEMENT_IDS.RAPIDO_COMO_EL_RAYO);
-                        }
-                        
-                        // Aumentar puntaje
-                        gameData.score += 10;
-                    } else {
-                        // Usar mensaje de retroalimentación de la pregunta si está disponible
-                        const feedbackText = (question.feedback && question.feedback.incorrect) || "Incorrecto.";
-                        feedbackTextDisplay.textContent = feedbackText;
-                        feedbackTextDisplay.classList.add('incorrect', 'show');
-                    }
-                    
-                    // Deshabilitar todos los botones de opciones
-                    const optionButtons = optionsContainer.querySelectorAll('button');
-                    optionButtons.forEach(btn => {
-                        btn.disabled = true;
-                        btn.style.animation = 'none';
-                    });
-                    
-                    // Resaltar la opción seleccionada y la correcta si es necesario
-                    optionButtons.forEach((btn, idx) => {
-                        const currentOption = question.currentShuffledOptions[idx];
-                        if (currentOption.correct) {
-                            btn.classList.add('correct');
-                        } else if (idx === indexInShuffledArray) {
-                            btn.classList.add('incorrect');
-                        }
-                    });
-                    
-                    // Registrar en el historial
-                    const originalCorrectOption = question.options.find(opt => opt.correct);
-                    let correctAnswerText = originalCorrectOption ? 
-                        (question.type === 'visual_select' ? 
-                            (originalCorrectOption.alt || originalCorrectOption.text || "Imagen correcta") : 
-                            originalCorrectOption.text) : 
-                        "Respuesta correcta no encontrada";
-                    
-                    gameData.history.push({
-                        level: gameData.currentLevel,
-                        questionText: question.text.substring(0, 70) + (question.text.length > 70 ? "..." : ""),
-                        userAnswer: question.type === 'visual_select' ? 
-                            (option.alt || option.text || "Opción seleccionada") : 
-                            option.text,
-                        correctAnswer: correctAnswerText,
-                        isCorrect: isCorrect
-                    });
-                    
-                    saveData();
-                    nextQuestionButton.style.display = 'block';
-                    updateGameHeaderUI();
-                    stopQuestionTimer();
-                });
+                button.addEventListener('click', () => handleAnswerSelection(indexInShuffledArray, option, question.feedback));
                 optionsContainer.appendChild(button);
             });
 
@@ -1084,6 +911,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /**
      * Handles the user's answer selection.
+     * @param {number} selectedIndexInShuffledArray - The index of the selected option IN THE SHUFFLED LIST.
+     * @param {object} selectedOptionObject - The actual option object that was selected.
+     * @param {object} feedbackMessages - Object containing correct and incorrect feedback messages.
+     */
+    function handleAnswerSelection(selectedIndexInShuffledArray, selectedOptionObject, feedbackMessages) {
+        if (gameData.currentQuestionAnswered) return;
+        gameData.currentQuestionAnswered = true;
+        stopQuestionTimer(); 
+        
+        const isCorrect = selectedOptionObject.correct;
+        playSoundFeedback(isCorrect);
+
+        const question = gameData.currentLevelQuestions[gameData.currentQuestionIndex];
+        const selectedOptionRepresentation = question.type === 'visual_select' 
+            ? (selectedOptionObject.alt || selectedOptionObject.text || `Opción ${selectedIndexInShuffledArray + 1}`) 
+            : selectedOptionObject.text;
+
+        if (isCorrect) {
+            gameData.score += 10;
+            feedbackTextDisplay.textContent = feedbackMessages.correct || "¡Correcto!";
             feedbackTextDisplay.classList.add('correct', 'show');
             currentScoreDisplay.classList.add('updated'); 
             setTimeout(() => currentScoreDisplay.classList.remove('updated'), 600);
@@ -1179,79 +1026,6 @@ document.addEventListener('DOMContentLoaded', () => {
         saveData(); // Save final score, high scores, and any new achievements
         displayHighScoresOnLevelSelect(); // Update high scores on level select screen
         showScreen('game-over-screen');
-        
-        function showResults() {
-            const resultScreen = document.getElementById('results-screen');
-            const resultScore = document.getElementById('result-score');
-            const resultMessage = document.getElementById('result-message');
-            const resultDetails = document.getElementById('result-details');
-            
-            // Calculate score and check for perfect score
-            const totalQuestions = gameData.currentLevelQuestions.length;
-            const correctAnswers = gameData.history.filter(item => item.isCorrect).length;
-            const score = Math.round((correctAnswers / totalQuestions) * 100);
-            const isPerfectScore = correctAnswers === totalQuestions;
-            
-            // Update UI
-            resultScore.textContent = `${score}%`;
-            resultMessage.textContent = isPerfectScore ? '¡Puntuación Perfecta!' : '¡Buen trabajo!';
-            
-            // Show level completion achievement if perfect score
-            if (isPerfectScore) {
-                const today = new Date().toDateString();
-                let achievementId = '';
-                
-                switch(gameData.currentLevel) {
-                    case 'easy':
-                        achievementId = ACHIEVEMENT_IDS.PERFECT_EASY;
-                        gameData.stats.levelsCompleted.easy = true;
-                        gameData.stats.levelsCompleted.lastLevelCompletionDate = today;
-                        break;
-                    case 'intermediate':
-                        achievementId = ACHIEVEMENT_IDS.PERFECT_INTERMEDIATE;
-                        gameData.stats.levelsCompleted.intermediate = true;
-                        gameData.stats.levelsCompleted.lastLevelCompletionDate = today;
-                        break;
-                    case 'difficult':
-                        achievementId = ACHIEVEMENT_IDS.PERFECT_DIFFICULT;
-                        gameData.stats.levelsCompleted.difficult = true;
-                        gameData.stats.levelsCompleted.lastLevelCompletionDate = today;
-                        break;
-                }
-                
-                if (achievementId) {
-                    unlockAchievement(achievementId);
-                    
-                    // Verificar si se completaron los tres niveles el mismo día
-                    checkAllLevelsCompletedToday(today);
-                }
-            }
-        }
-    }
-
-    /**
-     * Verifica si se completaron los tres niveles el mismo día
-     * @param {string} today - Fecha actual en formato de cadena
-     */
-    function checkAllLevelsCompletedToday(today) {
-        const levels = gameData.stats.levelsCompleted;
-        
-        // Verificar si todos los niveles están completados
-        if (levels.easy && levels.intermediate && levels.difficult) {
-            // Verificar si la fecha de finalización del último nivel es hoy
-            if (levels.lastLevelCompletionDate === today) {
-                // Verificar si los tres niveles se completaron hoy
-                const levelsCompletedToday = [
-                    levels.easy === true || levels.easy === today,
-                    levels.intermediate === true || levels.intermediate === today,
-                    levels.difficult === true || levels.difficult === today
-                ].every(Boolean);
-                
-                if (levelsCompletedToday) {
-                    unlockAchievement(ACHIEVEMENT_IDS.REY_DE_LA_TRIGONOMETRIA);
-                }
-            }
-        }
     }
 
     /** Updates the game header UI (score, question count, timer). */
@@ -1293,89 +1067,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- Timer Functions ---
-    /**
-     * Inicia un temporizador genérico
-     * @param {Object} config - Configuración del temporizador
-     * @param {number} config.duration - Duración en segundos
-     * @param {Function} config.onTick - Función a ejecutar en cada tick
-     * @param {Function} config.onComplete - Función a ejecutar al completar
-     * @param {HTMLElement} config.displayElement - Elemento donde mostrar el tiempo
-     * @returns {Object} Objeto con métodos para controlar el temporizador
-     */
-    function createTimer(config) {
-        let timer = null;
-        let timeRemaining = config.duration;
-        
-        const updateDisplay = () => {
-            if (config.displayElement) {
-                config.displayElement.textContent = `⏱️ ${timeRemaining}s`;
-                if (timeRemaining <= 5) {
-                    config.displayElement.style.color = '#ff4444';
-                } else {
-                    config.displayElement.style.color = '';
-                }
-            }
-        };
-        
-        const start = () => {
-            stop();
-            timeRemaining = config.duration;
-            updateDisplay();
-            
-            timer = setInterval(() => {
-                timeRemaining--;
-                updateDisplay();
-                
-                if (typeof config.onTick === 'function') {
-                    config.onTick(timeRemaining);
-                }
-                
-                if (timeRemaining <= 0) {
-                    stop();
-                    if (typeof config.onComplete === 'function') {
-                        config.onComplete();
-                    }
-                }
-            }, 1000);
-        };
-        
-        const stop = () => {
-            if (timer) {
-                clearInterval(timer);
-                timer = null;
-            }
-        };
-        
-        const getTimeRemaining = () => timeRemaining;
-        
-        return { start, stop, getTimeRemaining };
-    }
-    
-    // Definir el elemento del temporizador
-    const timerElement = document.getElementById('timer-display');
-    
-    // Ejemplo de uso para el modo pregunta normal
     function startQuestionTimer() {
-        if (gameData.timer) {
-            stopQuestionTimer();
-        }
-        gameData.timer = createTimer({
-            duration: 30, // 30 segundos por pregunta
-            displayElement: timerElement,
-            onComplete: handleTimeout
-        });
-        gameData.timer.start();
+        stopQuestionTimer(); // Clear any existing timer
+        timeLeft = timePerQuestion;
+        updateTimerDisplay();
+
+        questionTimerInterval = setInterval(() => {
+            timeLeft--;
+            updateTimerDisplay();
+            if (timeLeft <= 0) {
+                handleTimeout();
+            }
+        }, 1000);
     }
-    
+
     function stopQuestionTimer() {
-        if (gameData.timer && typeof gameData.timer.stop === 'function') {
-            gameData.timer.stop();
-            gameData.timer = null;
-        }
+        clearInterval(questionTimerInterval);
+        questionTimerInterval = null;
     }
-    
+
     function updateTimerDisplay() {
-        // Ahora manejado internamente por createTimer
+        timerDisplay.textContent = `Tiempo: ${timeLeft}`;
+        if (timeLeft <= 5 && timeLeft > 0) { // Visual cue for low time
+            timerDisplay.style.color = 'red';
+        } else {
+            timerDisplay.style.color = document.body.classList.contains('dark-mode') ? '#4fc3f7' : '#1e88e5';
+        }
     }
 
     function handleTimeout() {
@@ -1432,73 +1149,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Desbloquea un logro si no estaba desbloqueado previamente
-     * @param {string} achievementId - ID del logro a desbloquear
+     * Unlocks an achievement if not already unlocked.
+     * @param {string} achievementId - The ID of the achievement to unlock.
      */
     function unlockAchievement(achievementId) {
-        // Asegurarse de que gameData.playerAchievements existe
-        if (!gameData.playerAchievements) {
-            gameData.playerAchievements = {};
+        if (gameData.playerAchievements[achievementId] === null) { // Only unlock if not already unlocked
+            gameData.playerAchievements[achievementId] = new Date().toLocaleDateString('es-ES'); // Store date
+            // Optionally, display a notification to the user here
+            feedbackTextDisplay.textContent = `¡Logro Desbloqueado: ${ACHIEVEMENT_DETAILS[achievementId].name}!`;
+            feedbackTextDisplay.className = 'feedback-animation correct show'; // Reuse feedback display
+            // Clear the achievement message after a few seconds if it's on the game screen
+            if(document.getElementById('game-screen').classList.contains('active')) {
+                setTimeout(() => {
+                    // Only clear if it's still an achievement message
+                    if (feedbackTextDisplay.textContent.startsWith("¡Logro Desbloqueado:")) {
+                         feedbackTextDisplay.textContent = '';
+                         feedbackTextDisplay.className = 'feedback-animation';
+                    }
+                }, 3000);
+            }
+            saveData();
         }
-        
-        // Si el logro ya está desbloqueado, no hacer nada
-        if (gameData.playerAchievements[achievementId]) {
-            return;
-        }
-        
-        // Agregar el logro con la fecha actual
-        gameData.playerAchievements[achievementId] = new Date().toLocaleDateString('es-ES');
-        
-        // Mostrar notificación
-        const achievement = ACHIEVEMENT_DETAILS[achievementId];
-        if (achievement) {
-            showAchievementNotification(achievement.name, achievement.description);
-        }
-        
-        // Guardar cambios
-        saveData();
-    }
-    
-    /**
-     * Muestra una notificación de logro desbloqueado
-     * @param {string} title - Título del logro
-     * @param {string} description - Descripción del logro
-     */
-    function showAchievementNotification(title, description) {
-        const notification = document.createElement('div');
-        notification.className = 'achievement-notification';
-        
-        // Obtener el logro actual para ver si tiene un ícono personalizado
-        const achievement = Object.entries(ACHIEVEMENT_DETAILS).find(
-            ([_, detail]) => detail.name === title
-        );
-        const icon = achievement ? (achievement[1].icon || '🏆') : '🏆';
-        
-        notification.innerHTML = `
-            <div class="achievement-icon">${icon}</div>
-            <div class="achievement-content">
-                <div class="achievement-title">${title}</div>
-                <div class="achievement-desc">${description}</div>
-            </div>
-        `;
-        
-        document.body.appendChild(notification);
-        
-        // Forzar reflujo para la animación
-        void notification.offsetWidth;
-        
-        // Mostrar notificación
-        notification.classList.add('show');
-        
-        // Eliminar notificación después de 5 segundos
-        setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
-                }
-            }, 500); // Tiempo para la animación de salida
-        }, 5000);
     }
 
     /** Displays achievements on the achievements screen */
@@ -1518,9 +1189,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const iconDiv = document.createElement('div');
             iconDiv.classList.add('achievement-icon');
-            // Usar el ícono personalizado si existe, de lo contrario usar el predeterminado
-            const defaultIcon = unlockedDate ? '🌟' : '❓';
-            iconDiv.textContent = (unlockedDate && achievementDetail.icon) ? achievementDetail.icon : defaultIcon;
+            iconDiv.textContent = unlockedDate ? '🌟' : '❓';
 
             const detailsDiv = document.createElement('div');
             detailsDiv.classList.add('achievement-details');
@@ -1568,12 +1237,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- Survival Mode Variables and Elements ---
-    let survivalData = {
-        score: 0,
-        allQuestions: [],
-        currentQuestionIndex: 0,
-        currentQuestionAnswered: false
-    };
+    let survivalData = null;
+    let survivalTimer = null;
+    let survivalGameOverTimer = null;
+    
+    // Clear all survival mode timers
+    function clearSurvivalTimers() {
+        if (survivalTimer) {
+            clearInterval(survivalTimer);
+            survivalTimer = null;
+        }
+        if (survivalGameOverTimer) {
+            clearTimeout(survivalGameOverTimer);
+            survivalGameOverTimer = null;
+        }
+    }
     
     const survivalTimePerQuestion = 20; // 20 seconds per question in survival mode
     let survivalTimeLeft = survivalTimePerQuestion;
@@ -1581,7 +1259,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Survival Mode UI Elements
     const survivalScoreDisplay = document.getElementById('survival-score');
-    const survivalQuestionNumber = document.getElementById('survival-question-number');
     const survivalTimerText = document.getElementById('survival-timer-text');
     const survivalTimerBar = document.getElementById('survival-timer-bar');
     const survivalQuestionText = document.getElementById('survival-question-text');
@@ -2089,18 +1766,48 @@ document.addEventListener('DOMContentLoaded', () => {
      * Starts a new survival mode game
      */
     function startSurvivalMode() {
-        initAudio(); // Ensure audio is ready
+        initAudio();
         
-        // Reset survival data
-        survivalData.score = 0;
-        survivalData.currentQuestionIndex = 0;
-        survivalData.currentQuestionAnswered = false;
+        // Clear any existing timers
+        clearSurvivalTimers();
+        
+        // Initialize survival data
+        survivalData = {
+            score: 0,
+            allQuestions: [],
+            currentQuestionIndex: 0,
+            currentQuestionAnswered: false,
+            isActive: true
+        };
         
         // Get all questions from all levels and shuffle them
         survivalData.allQuestions = questions
-            .map(q => ({ ...q, options: q.options.map(opt => ({ ...opt })) })) // Deep copy
-            .sort(() => Math.random() - 0.5); // Shuffle
+            .map(q => ({
+                ...q,
+                options: q.options.map(opt => ({
+                    ...opt,
+                    text: opt.text,
+                    correct: opt.correct || false
+                }))
+            }))
+            .sort(() => Math.random() - 0.5);
         
+        // Reset UI
+        if (survivalFeedbackText) {
+            survivalFeedbackText.className = 'feedback-animation';
+            survivalFeedbackText.textContent = '';
+        }
+        
+        // Enable all option buttons
+        if (survivalOptionsContainer) {
+            const optionButtons = survivalOptionsContainer.querySelectorAll('button');
+            optionButtons.forEach(btn => {
+                btn.disabled = false;
+                btn.classList.remove('correct', 'incorrect');
+            });
+        }
+        
+        // Start the game
         updateSurvivalUI();
         loadSurvivalQuestion();
         showScreen('modo-supervivencia');
@@ -2111,12 +1818,6 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function updateSurvivalUI() {
         survivalScoreDisplay.textContent = `Aciertos: ${survivalData.score}`;
-        // Update question counter
-        survivalQuestionNumber.textContent = `Pregunta: ${survivalData.currentQuestionIndex + 1}`;
-        // Add a small animation to the score display when updated
-        survivalScoreDisplay.classList.remove('updated');
-        void survivalScoreDisplay.offsetWidth; // Force reflow to restart animation
-        survivalScoreDisplay.classList.add('updated');
     }
     
     /**
@@ -2129,7 +1830,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Delay slightly to allow "loading" animation to be visible
         setTimeout(() => {
             survivalQuestionText.classList.remove('loading');
-            survivalQuestionText.classList.add('question-transition');
             const question = survivalData.allQuestions[survivalData.currentQuestionIndex];
             
             if (!question) {
@@ -2208,141 +1908,85 @@ document.addEventListener('DOMContentLoaded', () => {
         survivalData.currentQuestionAnswered = true;
         stopSurvivalTimer();
         
-        // Calcular tiempo que tomó responder (en segundos)
-        const timeTaken = 15 - survivalTimeLeft;
-        
         const isCorrect = selectedOptionObject.correct;
         playSoundFeedback(isCorrect);
-
+        
         const question = survivalData.allQuestions[survivalData.currentQuestionIndex];
-        const selectedOptionRepresentation = question.type === 'visual_select' 
-            ? (selectedOptionObject.alt || selectedOptionObject.text || `Opción ${selectedIndexInShuffledArray + 1}`) 
-            : selectedOptionObject.text;
-            
-        // Inicializar estadísticas si no existen
-        if (!survivalData.stats) {
-            survivalData.stats = {
-                totalCorrectAnswers: 0,
-                fastAnswers: 0,
-                consecutiveFastAnswers: 0,
-                sessionStartTime: Date.now(),
-                levelsCompleted: {
-                    easy: false,
-                    intermediate: false,
-                    difficult: false
-                },
-                lastLevelCompletionDate: null
-            };
-        }
-        
-        // Lógica para logros
-        if (isCorrect) {
-            // Incrementar contador de respuestas correctas
-            survivalData.stats.totalCorrectAnswers = (survivalData.stats.totalCorrectAnswers || 0) + 1;
-            
-            // Verificar si la respuesta fue rápida (menos de 3 segundos)
-            if (timeTaken < 3) {
-                survivalData.stats.fastAnswers = (survivalData.stats.fastAnswers || 0) + 1;
-                survivalData.stats.consecutiveFastAnswers = (survivalData.stats.consecutiveFastAnswers || 0) + 1;
-                
-                // Verificar logro RÁPIDO_Y_PRECISO (10 respuestas rápidas)
-                if (survivalData.stats.fastAnswers >= 10) {
-                    unlockAchievement(ACHIEVEMENT_IDS.RAPIDO_Y_PRECISO);
-                }
-                
-                // Verificar logro VELOCIDAD_RAYO (5 respuestas rápidas seguidas)
-                if (survivalData.stats.consecutiveFastAnswers >= 5) {
-                    unlockAchievement(ACHIEVEMENT_IDS.VELOCIDAD_RAYO);
-                }
-            } else {
-                // Reiniciar contador de respuestas rápidas consecutivas
-                survivalData.stats.consecutiveFastAnswers = 0;
-            }
-            
-            // Verificar logro MAESTRO_DE_LOS_TRIANGULOS (50 respuestas correctas)
-            if (survivalData.stats.totalCorrectAnswers >= 50) {
-                unlockAchievement(ACHIEVEMENT_IDS.MAESTRO_DE_LOS_TRIANGULOS);
-            }
-            
-            // Verificar logro FAST_ANSWER (respuesta en menos de 5 segundos)
-            if (timeTaken <= 5) {
-                unlockAchievement(ACHIEVEMENT_IDS.FAST_ANSWER);
-            }
-        } else {
-            // Reiniciar contador de respuestas rápidas consecutivas
-            survivalData.stats.consecutiveFastAnswers = 0;
-        }
-
-        const optionButtons = survivalOptionsContainer.querySelectorAll('button');
-        const selectedButton = optionButtons[selectedIndexInShuffledArray];
         
         if (isCorrect) {
-            // Respuesta correcta
             survivalData.score++;
             survivalFeedbackText.textContent = feedbackMessages.correct || "¡Correcto!";
-            survivalFeedbackText.className = 'feedback-animation correct show';
+            survivalFeedbackText.classList.add('correct', 'show');
             
-            // Actualizar puntuación
-            updateSurvivalUI();
+            // Update score display with animation
+            survivalScoreDisplay.textContent = `Aciertos: ${survivalData.score}`;
+            survivalScoreDisplay.classList.add('updated');
+            setTimeout(() => survivalScoreDisplay.classList.remove('updated'), 600);
             
-            // Añadir efecto visual al botón seleccionado
-            selectedButton.classList.add('correct-answer');
-            
-            // Incrementar el contador de preguntas
-            survivalData.currentQuestionIndex++;
-            // Actualizar la UI para mostrar el nuevo número de pregunta
-            updateSurvivalUI();
-            
-            // Mover a la siguiente pregunta después de un breve retraso
+            // Move to next question after a short delay
             setTimeout(() => {
-                selectedButton.classList.remove('correct-answer');
-                if (survivalData.currentQuestionIndex < survivalData.allQuestions.length) {
-                    loadSurvivalQuestion();
-                } else {
-                    endSurvivalGame(true);
-                }
-            }, 1000);
+                survivalData.currentQuestionIndex++;
+                loadSurvivalQuestion();
+            }, 1500);
         } else {
-            // Respuesta incorrecta - fin del juego
+            // Game over on incorrect answer
             survivalFeedbackText.textContent = feedbackMessages.incorrect || "Incorrecto.";
-            survivalFeedbackText.className = 'feedback-animation incorrect show';
+            survivalFeedbackText.classList.add('incorrect', 'show');
             
-            // Añadir efecto visual al botón seleccionado
-            selectedButton.classList.add('incorrect-answer');
-            
-            // Mostrar la respuesta correcta
-            optionButtons.forEach((btn, idx) => {
-                const currentButtonOption = question.currentShuffledOptions[idx];
-                if (currentButtonOption.correct) {
-                    btn.classList.add('correct-answer');
-                }
-            });
-            
-            // Terminar el juego después de mostrar el feedback
+            // End the game after showing feedback
             setTimeout(() => {
                 endSurvivalGame(false);
             }, 1500);
         }
         
-        // Deshabilitar todos los botones
-        optionButtons.forEach(btn => {
+        // Disable all option buttons
+        const optionButtons = survivalOptionsContainer.querySelectorAll('button');
+        optionButtons.forEach((btn, idx) => {
             btn.disabled = true;
+            btn.style.animation = 'none';
+            
+            const currentButtonOption = question.currentShuffledOptions[idx];
+            
+            if (idx === selectedIndexInShuffledArray) {
+                btn.classList.add(isCorrect ? 'correct' : 'incorrect');
+            } else if (currentButtonOption.correct && !isCorrect) {
+                btn.classList.add('correct');
+            }
         });
     }
     
     /**
-     * Starts the timer for Survival Mode
+     * Starts the Survival Mode timer
      */
     function startSurvivalTimer() {
-        stopSurvivalTimer(); // Clear any existing timer
+        // Clear any existing timers first
+        clearSurvivalTimers();
+        
+        // Don't start if survival mode is not active
+        if (!survivalData || !survivalData.isActive) return;
+        
+        // Reset time left and update display
         survivalTimeLeft = survivalTimePerQuestion;
         updateSurvivalTimerDisplay();
         
-        survivalTimerInterval = setInterval(() => {
+        // Start the timer
+        survivalTimer = setInterval(() => {
+            // Don't proceed if survival mode is not active
+            if (!survivalData || !survivalData.isActive) {
+                clearSurvivalTimers();
+                return;
+            }
+            
             survivalTimeLeft--;
             updateSurvivalTimerDisplay();
+            
             if (survivalTimeLeft <= 0) {
-                handleSurvivalTimeout();
+                clearInterval(survivalTimer);
+                survivalTimer = null;
+                
+                if (survivalData && survivalData.isActive) {
+                    handleSurvivalTimeout();
+                }
             }
         }, 1000);
     }
@@ -2351,8 +1995,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * Stops the Survival Mode timer
      */
     function stopSurvivalTimer() {
-        clearInterval(survivalTimerInterval);
-        survivalTimerInterval = null;
+        clearSurvivalTimers();
     }
     
     /**
@@ -2379,40 +2022,60 @@ document.addEventListener('DOMContentLoaded', () => {
      * Handles timeout in Survival Mode
      */
     function handleSurvivalTimeout() {
-        if (survivalData.currentQuestionAnswered) return;
+        // Don't proceed if not active, already answered, or no survival data
+        if (!survivalData || !survivalData.isActive || survivalData.currentQuestionAnswered) {
+            return;
+        }
+        
+        // Mark as answered and stop timers
         survivalData.currentQuestionAnswered = true;
         stopSurvivalTimer();
         
-        playSoundFeedback(false);
+        // Play sound and show feedback
+        playSound('wrong');
         
-        survivalFeedbackText.textContent = "¡Tiempo agotado!";
-        survivalFeedbackText.className = 'feedback-animation incorrect show';
+        if (survivalFeedbackText) {
+            survivalFeedbackText.textContent = "¡Tiempo agotado!";
+            survivalFeedbackText.className = 'feedback-animation incorrect show';
+        }
         
-        // Añadir efecto visual de tiempo agotado a todos los botones
-        const optionButtons = survivalOptionsContainer.querySelectorAll('button');
-        optionButtons.forEach(btn => {
-            btn.classList.add('timeout-answer');
-            btn.disabled = true;
-        });
-        console.log('Aplicando efecto timeout a todos los botones');
-        
-        // Show the correct answer
-        const question = survivalData.allQuestions[survivalData.currentQuestionIndex];
-        if (question) {
-            optionButtons.forEach((btn, idx) => {
-                const currentButtonOption = question.currentShuffledOptions[idx];
-                if (currentButtonOption.correct) {
-                    btn.classList.add('correct');
+        // Disable all option buttons
+        if (survivalOptionsContainer) {
+            const optionButtons = survivalOptionsContainer.querySelectorAll('button');
+            optionButtons.forEach(btn => {
+                btn.disabled = true;
+                
+                // Show correct answer
+                const question = survivalData.allQuestions[survivalData.currentQuestionIndex];
+                if (question?.currentShuffledOptions) {
+                    const optionIndex = Array.from(optionButtons).indexOf(btn);
+                    const currentButtonOption = question.currentShuffledOptions[optionIndex];
+                    if (currentButtonOption?.correct) {
+                        btn.classList.add('correct');
+                    }
                 }
             });
         }
         
-        // End the game after showing feedback
-        setTimeout(() => {
-            optionButtons.forEach(btn => {
-                btn.classList.remove('timeout-answer');
-            });
-            endSurvivalGame(false);
+        // Clear any existing game over timeout
+        if (survivalGameOverTimer) {
+            clearTimeout(survivalGameOverTimer);
+            survivalGameOverTimer = null;
+        }
+        
+        // Set a short delay before moving to next question or ending game
+        survivalGameOverTimer = setTimeout(() => {
+            if (!survivalData || !survivalData.isActive) return;
+            
+            // Check if there are more questions
+            if (survivalData.currentQuestionIndex < survivalData.allQuestions.length - 1) {
+                // Move to next question
+                survivalData.currentQuestionIndex++;
+                loadSurvivalQuestion();
+            } else {
+                // No more questions, end game
+                endSurvivalGame(true);
+            }
         }, 1500);
     }
     
@@ -2421,6 +2084,21 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {boolean} completedAllQuestions - Whether the player completed all questions
      */
     function endSurvivalGame(completedAllQuestions) {
+        // Clear any pending timers
+        clearSurvivalTimers();
+        
+        // If no survival data, don't proceed
+        if (!survivalData) {
+            return;
+        }
+        
+        // If the game was quit, don't show the game over screen
+        if (survivalData.wasQuit) {
+            // Reset the flag for future games
+            survivalData.wasQuit = false;
+            return;
+        }
+        
         stopSurvivalTimer();
         
         // Update final score display

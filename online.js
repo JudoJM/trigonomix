@@ -1,13 +1,5 @@
 // Modo Multijugador Online para Trigonomix
-
-// Hacer que la función esté disponible globalmente
-window.initSocketConnection = function() {
-    // Si ya estamos conectados, no hacer nada
-    if (window.socketInitialized) return;
-    window.socketInitialized = true;
-    
-    console.log('Inicializando conexión Socket.io...');
-    
+document.addEventListener('DOMContentLoaded', () => {
     // Referencias a elementos DOM para el modo online
     const onlineButton = document.getElementById('online-button');
     const createRoomButton = document.getElementById('create-room-button');
@@ -88,54 +80,19 @@ window.initSocketConnection = function() {
         currentQuestionIndex: 0,
         isMyTurn: false,
         timerInterval: null,
-        timerValue: 15,
-        connectionAttempts: 0,
-        maxConnectionAttempts: 3,
-        isConnecting: false
+        timerValue: 15
     };
     
     // Inicializar conexión Socket.io
     function initSocketConnection() {
-        // Verificar si ya se está intentando conectar
-        if (onlineGameState.isConnecting) {
-            console.log('Ya se está intentando conectar al servidor...');
-            return;
-        }
-        
-        // Verificar si se superó el número máximo de intentos
-        if (onlineGameState.connectionAttempts >= onlineGameState.maxConnectionAttempts) {
-            console.warn('Número máximo de intentos de conexión alcanzado');
-            showScreen('connection-error-screen');
-            document.getElementById('connection-error-message').textContent = 
-                'No se pudo conectar al servidor. Por favor, verifica tu conexión a internet y recarga la página.';
-            const retryButton = document.getElementById('retry-connection-button');
-            if (retryButton) {
-                retryButton.disabled = true;
-                retryButton.textContent = 'Reintentar (máximo de intentos alcanzado)';
-            }
-            return;
-        }
-        
         try {
-            console.log(`Intento de conexión ${onlineGameState.connectionAttempts + 1} de ${onlineGameState.maxConnectionAttempts}`);
-            onlineGameState.isConnecting = true;
-            
-            // Crear conexión con tiempo de espera
-            const socketOptions = {
-                reconnectionAttempts: 3,
-                timeout: 5000 // 5 segundos de tiempo de espera
-            };
-            
             // Crear conexión
-            onlineGameState.socket = io(socketOptions);
-            onlineGameState.connectionAttempts++;
+            onlineGameState.socket = io();
             
             // Evento de conexión establecida
             onlineGameState.socket.on('connect', () => {
                 console.log('Conectado al servidor con ID:', onlineGameState.socket.id);
                 onlineGameState.connected = true;
-                onlineGameState.connectionAttempts = 0; // Reiniciar contador de intentos
-                onlineGameState.isConnecting = false;
                 
                 // Si se reconecta y estaba en una sala, intentar volver a conectar
                 if (onlineGameState.roomCode) {
@@ -147,7 +104,6 @@ window.initSocketConnection = function() {
             onlineGameState.socket.on('disconnect', () => {
                 console.log('Desconectado del servidor');
                 onlineGameState.connected = false;
-                onlineGameState.isConnecting = false;
                 
                 // Mostrar pantalla de error si estaba en juego
                 if (onlineGameState.gameActive || onlineGameState.roomCode) {
@@ -158,31 +114,9 @@ window.initSocketConnection = function() {
             // Evento de error de conexión
             onlineGameState.socket.on('connect_error', (error) => {
                 console.error('Error de conexión:', error);
-                onlineGameState.isConnecting = false;
-                
-                // Cerrar el socket si existe
-                if (onlineGameState.socket) {
-                    onlineGameState.socket.close();
-                    onlineGameState.socket = null;
-                }
-                
-                // Mostrar pantalla de error
                 showScreen('connection-error-screen');
-                
-                // Actualizar mensaje de error
-                const errorMessage = document.getElementById('connection-error-message');
-                if (onlineGameState.connectionAttempts >= onlineGameState.maxConnectionAttempts) {
-                    errorMessage.textContent = 'No se pudo conectar al servidor. Por favor, verifica tu conexión a internet y recarga la página.';
-                    // Deshabilitar el botón de reintentar después de varios intentos
-                    const retryButton = document.getElementById('retry-connection-button');
-                    if (retryButton) {
-                        retryButton.disabled = true;
-                        retryButton.textContent = 'Reintentar (máximo de intentos alcanzado)';
-                    }
-                } else {
-                    const remainingAttempts = onlineGameState.maxConnectionAttempts - onlineGameState.connectionAttempts + 1;
-                    errorMessage.textContent = `No se pudo conectar al servidor. Quedan ${remainingAttempts} intentos.`;
-                }
+                document.getElementById('connection-error-message').textContent = 
+                    'No se pudo conectar al servidor. Por favor, verifica tu conexión a internet.';
             });
             
             // Evento cuando se crea una sala
@@ -891,31 +825,15 @@ window.initSocketConnection = function() {
     
     // Botón para reintentar conexión
     retryConnectionButton.addEventListener('click', () => {
-        // Si ya está intentando conectar, no hacer nada
-        if (onlineGameState.isConnecting) {
-            return;
-        }
-        
-        // Si se superó el número máximo de intentos, recargar la página
-        if (onlineGameState.connectionAttempts >= onlineGameState.maxConnectionAttempts) {
-            window.location.reload();
-            return;
-        }
-        
-        // Mostrar mensaje de intentando reconectar
-        const errorMessage = document.getElementById('connection-error-message');
-        if (errorMessage) {
-            errorMessage.textContent = 'Intentando reconectar...';
-        }
-        
-        // Cerrar el socket anterior si existe
+        // Reintentar conexión Socket.io
         if (onlineGameState.socket) {
-            onlineGameState.socket.close();
-            onlineGameState.socket = null;
+            onlineGameState.socket.connect();
+        } else {
+            initSocketConnection();
         }
         
-        // Intentar reconectar
-        initSocketConnection();
+        // Volver al menú online después de intentar reconectar
+        showScreen('online-menu-screen');
     });
     
     // Botón para jugar de nuevo en modo online
@@ -933,17 +851,4 @@ window.initSocketConnection = function() {
     onlineBackToLobbyButton.addEventListener('click', () => {
         showScreen('waiting-room-screen');
     });
-}; // Fin de la función initSocketConnection
-
-// Inicializar cuando el DOM esté completamente cargado
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-        // Inicializar automáticamente si hay un botón de online
-        if (document.getElementById('online-button')) {
-            initSocketConnection();
-        }
-    });
-} else if (document.getElementById('online-button')) {
-    // Si el DOM ya está cargado, inicializar directamente
-    initSocketConnection();
-}
+}); 
