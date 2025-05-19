@@ -19,7 +19,7 @@ io.on('connection', (socket) => {
     console.log('Nuevo usuario conectado:', socket.id);
 
     // Evento para crear una sala
-    socket.on('createRoom', ({ playerName, totalQuestions = 20 }) => {
+    socket.on('createRoom', ({ playerName }) => {
         // Generar código de sala alfanumérico (longitud 6)
         const roomCode = generateRoomCode();
         
@@ -38,7 +38,7 @@ io.on('connection', (socket) => {
                 currentQuestionIndex: 0,
                 currentTurn: 0, // Índice del jugador actual
                 questions: [],
-                totalQuestions: totalQuestions, // Usar el valor proporcionado por el cliente
+                totalQuestions: 20,
                 timerValue: 15
             }
         };
@@ -88,11 +88,10 @@ io.on('connection', (socket) => {
         // Unir socket a la sala
         socket.join(roomCode);
         
-        // Enviar confirmación al cliente con el número correcto de preguntas
+        // Enviar confirmación al cliente
         socket.emit('roomJoined', {
             roomCode,
-            playerInfo,
-            totalQuestions: rooms[roomCode].gameState.totalQuestions // Enviar el número de preguntas configurado por el anfitrión
+            playerInfo
         });
         
         // Notificar al host que un jugador se ha unido
@@ -138,29 +137,13 @@ io.on('connection', (socket) => {
     // Evento para iniciar el juego
     socket.on('startGame', ({ roomCode, questions }) => {
         // Si no existe la sala, ignorar
-        if (!rooms[roomCode]) {
-            socket.emit('gameAborted', { reason: 'La sala no existe o ha sido cerrada.' });
-            return;
-        }
+        if (!rooms[roomCode]) return;
         
-        // Verificar que las preguntas sean válidas
-        if (!Array.isArray(questions) || questions.length === 0) {
-            console.error('Error: Preguntas inválidas recibidas', questions);
-            socket.emit('gameAborted', { reason: 'Error al cargar las preguntas. Por favor, intenta de nuevo.' });
-            return;
-        }
+        // Guardar preguntas
+        rooms[roomCode].gameState.questions = questions;
         
-        try {
-            // Guardar preguntas
-            rooms[roomCode].gameState.questions = questions;
-            console.log(`Juego iniciado en sala ${roomCode} con ${questions.length} preguntas`);
-            
-            // Iniciar juego
-            startGame(roomCode);
-        } catch (error) {
-            console.error('Error al iniciar el juego:', error);
-            socket.emit('gameAborted', { reason: 'Error al iniciar el juego. Por favor, intenta de nuevo.' });
-        }
+        // Iniciar juego
+        startGame(roomCode);
     });
 
     // Evento para respuesta de jugador
@@ -184,23 +167,13 @@ io.on('connection', (socket) => {
             player.incorrectAnswers++;
         }
         
-        // Notificar a todos sobre la respuesta (ambos puntajes)
+        // Notificar a todos sobre la respuesta
         io.to(roomCode).emit('answerResult', {
-            players: room.players.map(p => ({
-                id: p.id,
-                name: p.name,
-                score: p.score,
-                correctAnswers: p.correctAnswers,
-                incorrectAnswers: p.incorrectAnswers,
-                isHost: p.isHost
-            })),
             playerId: socket.id,
-            isCorrect
-        });
-        
-        // Emitir evento para detener el temporizador
-        io.to(roomCode).emit('playerAnswered', {
-            playerId: socket.id
+            isCorrect,
+            newScore: player.score,
+            correctAnswers: player.correctAnswers,
+            incorrectAnswers: player.incorrectAnswers
         });
         
         // Pasar al siguiente turno/pregunta
@@ -289,18 +262,10 @@ function startGame(roomCode) {
     room.gameState.currentQuestionIndex = 0;
     room.gameState.currentTurn = 0;
     
-    // Notificar inicio del juego con información completa de jugadores
+    // Notificar inicio del juego
     io.to(roomCode).emit('gameStarted', {
         firstPlayerId: room.players[0].id,
-        question: getNextQuestion(roomCode),
-        players: room.players.map(p => ({
-            id: p.id,
-            name: p.name,
-            score: p.score,
-            correctAnswers: p.correctAnswers,
-            incorrectAnswers: p.incorrectAnswers,
-            isHost: p.isHost
-        }))
+        question: getNextQuestion(roomCode)
     });
 }
 
@@ -398,17 +363,19 @@ function handlePlayerDisconnect(roomCode, playerId) {
     // Eliminar al jugador
     room.players.splice(playerIndex, 1);
     
-    // Si era el host, cerrar la sala y notificar a los demás
-    if (wasHost) {
-        io.to(roomCode).emit('roomClosed', { reason: 'El anfitrión ha abandonado la sala.' });
-        delete rooms[roomCode];
-        return;
-    }
-    
     // Si no quedan jugadores, eliminar sala
     if (room.players.length === 0) {
         delete rooms[roomCode];
         return;
+    }
+    
+    // Si era el host y quedan otros jugadores, transferir host
+    if (wasHost && room.players.length > 0) {
+        room.players[0].isHost = true;
+        // Notificar nuevo host
+        io.to(roomCode).emit('newHost', {
+            newHostId: room.players[0].id
+        });
     }
     
     // Si el juego estaba activo, finalizarlo

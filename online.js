@@ -85,79 +85,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Inicializar conexión Socket.io
     function initSocketConnection() {
-        if (!onlineGameState.socket) {
-            try {
-                onlineGameState.socket = io();
-            } catch (e) {
-                console.error('No se pudo inicializar la conexión Socket.io:', e);
-                return;
-            }
-        }
-        if (!onlineGameState.socket) {
-            console.error('Socket no está inicializado.');
-            return;
-        }
-        // Listener para cierre de sala por parte del host
-        onlineGameState.socket.on('roomClosed', (data) => {
-            alert(data.reason || 'La sala ha sido cerrada.');
-            // Limpiar el estado local antes de salir
-            onlineGameState.roomCode = null;
-            onlineGameState.playerInfo = null;
-            onlineGameState.otherPlayerInfo = null;
-            onlineGameState.isHost = false;
-            onlineGameState.gameActive = false;
-            onlineGameState.currentQuestion = null;
-            onlineGameState.currentQuestionIndex = 0;
-            onlineGameState.isMyTurn = false;
-            // Redirigir fuera de la sala
-            window.location.href = '/'; // O la ruta de inicio adecuada
-        });
-        // Escuchar evento de actualización de puntaje en tiempo real (ambos jugadores)
-        onlineGameState.socket.on('answerResult', ({ players, playerId, isCorrect }) => {
-            console.log('Recibido answerResult con players:', players);
-            
-            if (players && players.length === 2) {
-                // Actualizar ambos jugadores directamente desde los datos recibidos
-                const hostPlayer = players.find(p => p.isHost);
-                const guestPlayer = players.find(p => !p.isHost);
-                
-                if (hostPlayer && guestPlayer) {
-                    // Si soy el host, actualizo mi info con hostPlayer y la del otro con guestPlayer
-                    if (onlineGameState.isHost) {
-                        onlineGameState.playerInfo = hostPlayer;
-                        onlineGameState.otherPlayerInfo = guestPlayer;
-                    } else {
-                        // Si soy el invitado, actualizo mi info con guestPlayer y la del otro con hostPlayer
-                        onlineGameState.playerInfo = guestPlayer;
-                        onlineGameState.otherPlayerInfo = hostPlayer;
-                    }
-                    
-                    // Actualizar UI directamente
-                    if (onlineGameState.isHost) {
-                        onlinePlayer1Name.textContent = hostPlayer.name;
-                        onlinePlayer1Points.textContent = hostPlayer.score;
-                        onlinePlayer2Name.textContent = guestPlayer.name;
-                        onlinePlayer2Points.textContent = guestPlayer.score;
-                        
-                        // Animar ambos puntajes
-                        animateScoreUpdate(onlinePlayer1Points);
-                        animateScoreUpdate(onlinePlayer2Points);
-                    } else {
-                        onlinePlayer2Name.textContent = guestPlayer.name;
-                        onlinePlayer2Points.textContent = guestPlayer.score;
-                        onlinePlayer1Name.textContent = hostPlayer.name;
-                        onlinePlayer1Points.textContent = hostPlayer.score;
-                        
-                        // Animar ambos puntajes
-                        animateScoreUpdate(onlinePlayer1Points);
-                        animateScoreUpdate(onlinePlayer2Points);
-                    }
-                }
-            }
-        });
         try {
             // Crear conexión
-            //onlineGameState.socket = io();
+            onlineGameState.socket = io();
             
             // Evento de conexión establecida
             onlineGameState.socket.on('connect', () => {
@@ -210,15 +140,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             // Evento cuando un jugador se une a la sala
-            onlineGameState.socket.on('roomJoined', ({ roomCode, playerInfo, totalQuestions }) => {
+            onlineGameState.socket.on('roomJoined', ({ roomCode, playerInfo }) => {
                 onlineGameState.roomCode = roomCode;
                 onlineGameState.playerInfo = playerInfo;
                 onlineGameState.isHost = false;
-                
-                // Actualizar el número de preguntas con el valor configurado por el anfitrión
-                if (totalQuestions) {
-                    onlineGameState.totalQuestions = totalQuestions;
-                }
                 
                 // Actualizar UI
                 roomCodeDisplay.textContent = roomCode;
@@ -241,23 +166,16 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Evento cuando otro jugador se une a la sala
             onlineGameState.socket.on('playerJoined', ({ player }) => {
-                console.log('Jugador unido a la sala:', player);
-                
-                // Guardar la información del otro jugador
                 onlineGameState.otherPlayerInfo = player;
                 
                 // Actualizar UI
+                guestPlayerName.textContent = player.name;
+                guestPlayerItem.querySelector('.player-status').className = 'player-status ready';
+                guestPlayerItem.querySelector('.player-status').textContent = 'Listo';
+                
+                // Habilitar botón de inicio si soy el host
                 if (onlineGameState.isHost) {
-                    // Si soy host, el otro jugador es el invitado
-                    guestPlayerName.textContent = player.name;
-                    guestPlayerItem.querySelector('.player-status').className = 'player-status ready';
-                    guestPlayerItem.querySelector('.player-status').textContent = 'Listo';
-                    
-                    // Habilitar botón de inicio
                     startOnlineGameButton.disabled = false;
-                } else {
-                    // Si soy invitado, el otro jugador es el host
-                    hostPlayerName.textContent = player.name;
                 }
             });
             
@@ -268,41 +186,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             // Evento cuando el juego comienza
-            onlineGameState.socket.on('gameStarted', ({ firstPlayerId, question, players }) => {
+            onlineGameState.socket.on('gameStarted', ({ firstPlayerId, question }) => {
                 onlineGameState.gameActive = true;
                 onlineGameState.currentQuestion = question;
                 onlineGameState.isMyTurn = firstPlayerId === onlineGameState.socket.id;
                 onlineGameState.currentQuestionIndex = 0;
                 
-                // Si recibimos información de jugadores, actualizarla
-                if (players && players.length === 2) {
-                    const hostPlayer = players.find(p => p.isHost);
-                    const guestPlayer = players.find(p => !p.isHost);
-                    
-                    if (hostPlayer && guestPlayer) {
-                        // Actualizar información de jugadores según mi rol
-                        if (onlineGameState.isHost) {
-                            onlineGameState.playerInfo = hostPlayer;
-                            onlineGameState.otherPlayerInfo = guestPlayer;
-                        } else {
-                            onlineGameState.playerInfo = guestPlayer;
-                            onlineGameState.otherPlayerInfo = hostPlayer;
-                        }
-                    }
-                }
-                
-                // Asegurar que los puntajes se muestren correctamente
-                if (onlineGameState.isHost) {
-                    onlinePlayer1Name.textContent = onlineGameState.playerInfo.name;
-                    onlinePlayer1Points.textContent = onlineGameState.playerInfo.score || 0;
-                    onlinePlayer2Name.textContent = onlineGameState.otherPlayerInfo.name;
-                    onlinePlayer2Points.textContent = onlineGameState.otherPlayerInfo.score || 0;
-                } else {
-                    onlinePlayer2Name.textContent = onlineGameState.playerInfo.name;
-                    onlinePlayer2Points.textContent = onlineGameState.playerInfo.score || 0;
-                    onlinePlayer1Name.textContent = onlineGameState.otherPlayerInfo.name;
-                    onlinePlayer1Points.textContent = onlineGameState.otherPlayerInfo.score || 0;
-                }
+                // Actualizar información de jugadores
+                updateOnlinePlayersUI();
                 
                 // Actualizar contador de preguntas
                 onlineQuestionCounter.textContent = `1/${onlineGameState.totalQuestions}`;
@@ -347,12 +238,44 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             
-            // Evento cuando un jugador responde (ya manejado al inicio del archivo)
-            // No necesitamos duplicar este evento aquí
-            
-            // Si es mi turno y respondí, detener temporizador
-            onlineGameState.socket.on('playerAnswered', ({ playerId }) => {
+            // Evento cuando un jugador responde
+            onlineGameState.socket.on('answerResult', ({ playerId, isCorrect, newScore, correctAnswers, incorrectAnswers }) => {
+                // Verificar si es mi respuesta o la del otro jugador
                 const isMyAnswer = playerId === onlineGameState.socket.id;
+                
+                // Actualizar estadísticas del jugador correspondiente
+                if (isMyAnswer) {
+                    onlineGameState.playerInfo.score = newScore;
+                    onlineGameState.playerInfo.correctAnswers = correctAnswers;
+                    onlineGameState.playerInfo.incorrectAnswers = incorrectAnswers;
+                    
+                    // Actualizar UI de jugador 1 o 2 dependiendo de si soy host o invitado
+                    if (onlineGameState.isHost) {
+                        onlinePlayer1Points.textContent = newScore;
+                        animateScoreUpdate(onlinePlayer1Points);
+                    } else {
+                        onlinePlayer2Points.textContent = newScore;
+                        animateScoreUpdate(onlinePlayer2Points);
+                    }
+                } else {
+                    // Es respuesta del otro jugador
+                    if (onlineGameState.otherPlayerInfo) {
+                        onlineGameState.otherPlayerInfo.score = newScore;
+                        onlineGameState.otherPlayerInfo.correctAnswers = correctAnswers;
+                        onlineGameState.otherPlayerInfo.incorrectAnswers = incorrectAnswers;
+                        
+                        // Actualizar UI del otro jugador
+                        if (onlineGameState.isHost) {
+                            onlinePlayer2Points.textContent = newScore;
+                            animateScoreUpdate(onlinePlayer2Points);
+                        } else {
+                            onlinePlayer1Points.textContent = newScore;
+                            animateScoreUpdate(onlinePlayer1Points);
+                        }
+                    }
+                }
+                
+                // Si es mi turno y respondí, detener temporizador
                 if (isMyAnswer && onlineGameState.isMyTurn) {
                     stopOnlineTimer();
                 }
@@ -847,37 +770,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 totalQuestions: onlineGameState.totalQuestions
             });
             
-            // Preparar preguntas (usar todas las preguntas del juego base)
-            // Acceder a questions que está definido en el ámbito global en script.js
+            // Preparar preguntas (conseguir todas las preguntas del juego base)
+            // Hacemos referencia a questions que debería estar definido en script.js
             let gameQuestions = [];
-            
-            try {
-                // Asegurarse de que questions esté disponible
-                if (window.questions && Array.isArray(window.questions)) {
-                    console.log('Preguntas encontradas:', window.questions.length);
-                    
-                    // Mezclar todas las preguntas
-                    const allQuestions = [...window.questions];
-                    
-                    // Fisher-Yates (Knuth) Shuffle
-                    for (let i = allQuestions.length - 1; i > 0; i--) {
-                        const j = Math.floor(Math.random() * (i + 1));
-                        [allQuestions[i], allQuestions[j]] = [allQuestions[j], allQuestions[i]];
-                    }
-                    
-                    // Tomar número deseado de preguntas
-                    gameQuestions = allQuestions.slice(0, onlineGameState.totalQuestions);
-                    
-                    console.log('Preguntas seleccionadas para el juego:', gameQuestions.length);
-                } else {
-                    throw new Error('La variable questions no está definida o no es un array');
+            if (typeof questions !== 'undefined' && Array.isArray(questions)) {
+                // Mezclar todas las preguntas
+                const allQuestions = [...questions];
+                
+                // Fisher-Yates (Knuth) Shuffle
+                for (let i = allQuestions.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [allQuestions[i], allQuestions[j]] = [allQuestions[j], allQuestions[i]];
                 }
-            } catch (error) {
-                console.error('Error al preparar preguntas:', error);
-                document.getElementById('connection-error-message').textContent = 
-                    'Error al cargar las preguntas. Por favor, recarga la página e inténtalo de nuevo.';
-                showScreen('connection-error-screen');
-                return;
+                
+                // Tomar número deseado de preguntas
+                gameQuestions = allQuestions.slice(0, onlineGameState.totalQuestions);
+            } else {
+                // Crear preguntas de ejemplo si no hay disponibles
+                for (let i = 0; i < onlineGameState.totalQuestions; i++) {
+                    gameQuestions.push({
+                        text: `Pregunta de ejemplo ${i + 1}`,
+                        options: [
+                            { text: "Opción A", correct: i % 3 === 0 },
+                            { text: "Opción B", correct: i % 3 === 1 },
+                            { text: "Opción C", correct: i % 3 === 2 }
+                        ],
+                        feedback: {
+                            correct: "¡Correcto!",
+                            incorrect: "Incorrecto, sigue intentando."
+                        }
+                    });
+                }
             }
             
             // Iniciar juego

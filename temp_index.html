@@ -1,0 +1,427 @@
+﻿<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trigonomix</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="importmap">
+    {
+        "imports": {
+            
+        }
+    }
+    </script>
+    <!-- Cargar Socket.io desde el servidor o CDN como fallback -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Verificar si Socket.io se cargÃ³ correctamente y cargar desde CDN si es necesario
+        window.addEventListener('DOMContentLoaded', function() {
+            if (typeof io === 'undefined') {
+                console.log('Cargando Socket.io desde CDN...');
+                var script = document.createElement('script');
+                script.src = 'https://cdn.socket.io/4.7.2/socket.io.min.js';
+                script.integrity = "sha384-mZLF4UVrpi/QTWPA7BjNPsS/zBP0ZDsGDCnZUCTCYYFS9bELsvTTn7MU7wUoOhbr";
+                script.crossOrigin = "anonymous";
+                script.onload = function() {
+                    console.log('Socket.io cargado correctamente desde CDN');
+                    // Si tienes una funciÃ³n de inicializaciÃ³n, puedes llamarla aquÃ­
+                    if (typeof initSocketConnection === 'function') {
+                        initSocketConnection();
+                    }
+                };
+                document.head.appendChild(script);
+            }
+        });
+    </script>
+</head>
+<body>
+    
+        
+    <div id="app-container">
+        <button id="toggle-theme-button" class="nav-button">Modo oscuro</button>
+        
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen active">
+            <h1>Trigonomix</h1>
+            <p>Un juego interactivo y divertido para aprender razones trigonomÃ©tricas.</p>
+            <div id="player-name-container">
+                <label for="player-name-input">Nombre del Jugador:</label>
+                <input type="text" id="player-name-input" placeholder="Jugador" maxlength="20">
+            </div>
+            <button id="start-game-button" class="action-button">Comenzar</button>
+            <button id="survival-mode-button" class="action-button">Modo Supervivencia</button>
+            <button id="multiplayer-button" class="action-button">Modo 2 Jugadores</button>
+            <button id="online-button" class="action-button">Multijugador Online</button>
+            <button id="theory-button" class="secondary-button">TeorÃ­a</button>
+            <button id="history-button" class="secondary-button">Historial</button>
+            <button id="achievements-button" class="secondary-button">Logros</button>
+            <button id="authors-button" class="secondary-button">Autores</button>
+            <button id="about-button" class="secondary-button">Acerca de</button>
+        </div>
+
+        <!-- Level Select Screen -->
+        <div id="level-select-screen" class="screen">
+            <h2>Selecciona un Nivel</h2>
+            <button id="level-easy" data-level="easy" class="level-button action-button">
+                FÃ¡cil (Conceptos)
+                <span class="level-highscore" data-level="easy">Mejor: 0 (CPU)</span>
+            </button>
+            <button id="level-intermediate" data-level="intermediate" class="level-button action-button">
+                Intermedio (IdentificaciÃ³n)
+                <span class="level-highscore" data-level="intermediate">Mejor: 0 (CPU)</span>
+            </button>
+            <button id="level-difficult" data-level="difficult" class="level-button action-button">
+                DifÃ­cil (Relaciones)
+                <span class="level-highscore" data-level="difficult">Mejor: 0 (CPU)</span>
+            </button>
+            <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <div class="game-header">
+                <span id="current-level-text">Nivel: FÃ¡cil</span>
+                <span id="current-score">Puntaje: 0</span>
+                <span id="timer-display">Tiempo: 30</span>
+                <span id="question-counter">Pregunta: 1/X</span>
+            </div>
+            <h3 id="question-text">Cargando pregunta...</h3>
+            <div id="question-image-container">
+                <img id="question-image" src="" alt="Diagrama de la pregunta" style="display:none;"> 
+                <p id="image-value-info"></p>
+            </div>
+            <div id="options-container">
+                <!-- Options will be populated by JS - could be text or images -->
+            </div>
+            <p id="feedback-text" class="feedback-animation"></p>
+            <button id="next-question-button" class="action-button" style="display:none;">Siguiente Pregunta</button>
+            <button id="quit-game-button" class="nav-button" data-target="level-select-screen">Salir del Juego</button>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="game-over-screen" class="screen">
+            <h2 id="game-over-title">Â¡Juego Terminado!</h2>
+            <p id="final-score-text">Tu puntaje final: 0</p>
+            <p id="level-high-score-text">Mejor puntaje para este nivel: 0 por CPU</p>
+            <button id="play-again-button" class="action-button">Jugar de Nuevo (Mismo Nivel)</button>
+            <button class="nav-button" data-target="level-select-screen">Seleccionar Otro Nivel</button>
+            <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
+        </div>
+        
+        <!-- History Screen -->
+        <div id="history-screen" class="screen">
+            <h2>Historial de Respuestas</h2>
+            <div id="history-list">
+                <!-- History items will be populated by JS -->
+            </div>
+            <button id="clear-history-button" class="action-button">Limpiar Historial</button>
+            <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
+        </div>
+
+        <!-- Authors Screen -->
+        <div id="authors-screen" class="screen">
+            <h2>Autores</h2>
+            <div class="authors-container">
+                <div class="author-card">
+                    <h3 class="author-name">Juan Manuel Montenegro</h3>
+                    <p class="author-role">MbappÃ©</p>
+                </div>
+                <div class="author-card">
+                    <h3 class="author-name">Juan David Rivas</h3>
+                    <p class="author-role">DembÃ©lÃ©</p>
+                </div>
+                <div class="author-card">
+                    <h3 class="author-name">Grado 10-2</h3>
+                </div>
+            </div>
+            <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
+        </div>
+
+        <!-- Theory Screen -->
+        <div id="theory-screen" class="screen">
+            <h2>TeorÃ­a de TrigonometrÃ­a</h2>
+            <div class="theory-content">
+                <div class="theory-topic">
+                    <h3>TriÃ¡ngulo RectÃ¡ngulo</h3>
+                    <img src="triangle_diagram.png" alt="Diagrama de TriÃ¡ngulo con etiquetas o, a, h" class="theory-image">
+                    <p>Un triÃ¡ngulo rectÃ¡ngulo tiene un Ã¡ngulo de 90Â°. Los lados que forman el Ã¡ngulo recto se llaman <strong>catetos</strong>. El lado mÃ¡s largo, opuesto al Ã¡ngulo recto, es la <strong>hipotenusa</strong>.</p>
+                    <p>En el diagrama:</p>
+                    <ul>
+                        <li><strong>Î¸ (theta):</strong> Es el Ã¡ngulo de referencia.</li>
+                        <li><strong>o (Cateto Opuesto):</strong> Lado opuesto al Ã¡ngulo Î¸.</li>
+                        <li><strong>a (Cateto Adyacente):</strong> Lado adyacente al Ã¡ngulo Î¸ (que no es la hipotenusa).</li>
+                        <li><strong>h (Hipotenusa):</strong> Lado mÃ¡s largo, opuesto al Ã¡ngulo recto.</li>
+                    </ul>
+                </div>
+                <div class="theory-topic">
+                    <h3>Seno (sin Î¸)</h3>
+                    <p>El Seno de un Ã¡ngulo Î¸ es la razÃ³n entre el cateto opuesto y la hipotenusa.</p>
+                    <p><strong>FÃ³rmula:</strong> sen(Î¸) = Cateto Opuesto / Hipotenusa (o/h)</p>
+                </div>
+                <div class="theory-topic">
+                    <h3>Coseno (cos Î¸)</h3>
+                    <p>El Coseno de un Ã¡ngulo Î¸ es la razÃ³n entre el cateto adyacente y la hipotenusa.</p>
+                    <p><strong>FÃ³rmula:</strong> cos(Î¸) = Cateto Adyacente / Hipotenusa (a/h)</p>
+                </div>
+                <div class="theory-topic">
+                    <h3>Tangente (tan Î¸)</h3>
+                    <p>La Tangente de un Ã¡ngulo Î¸ es la razÃ³n entre el cateto opuesto y el cateto adyacente.</p>
+                    <p><strong>FÃ³rmula:</strong> tan(Î¸) = Cateto Opuesto / Cateto Adyacente (o/a)</p>
+                </div>
+            </div>
+            <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
+        </div>
+
+        <!-- Achievements Screen -->
+        <div id="achievements-screen" class="screen">
+            <h2>Mis Logros</h2>
+            <div id="achievements-list">
+                <!-- Achievements will be populated by JS -->
+            </div>
+            <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
+        </div>
+        <!-- About Screen -->
+<div id="about-screen" class="screen">
+    <h2 class="about-title">Acerca de Trigonomix</h2>
+    <p class="about-subtitle">Aprende trigonometrÃ­a de forma interactiva y divertida</p>
+    
+    <div class="about-content">
+        <section class="about-card">
+            <h3>Â¿QuÃ© es Trigonomix?</h3>
+            <p>Trigonomix es una aplicaciÃ³n educativa diseÃ±ada para hacer el aprendizaje de las razones trigonomÃ©tricas mÃ¡s accesible, interactivo y entretenido para estudiantes.</p>
+        </section>
+        
+        <section class="about-card">
+            <h3>Objetivo educativo</h3>
+            <p>Nuestra app ayuda a comprender y practicar los conceptos fundamentales de trigonometrÃ­a a travÃ©s de:</p>
+            <ul class="feature-list">
+                <li>Explicaciones teÃ³ricas claras</li>
+                <li>Ejercicios prÃ¡cticos graduados por dificultad</li>
+                <li>RetroalimentaciÃ³n inmediata</li>
+                <li>Sistema de logros motivadores</li>
+            </ul>
+        </section>
+        
+        <section class="about-card">
+            <h3>Â¿CÃ³mo aplicamos la trigonometrÃ­a?</h3>
+            <p>En Trigonomix trabajamos con las tres razones trigonomÃ©tricas bÃ¡sicas:</p>
+            <div class="trig-functions">
+                <div class="trig-function">
+                    <span class="trig-icon">S</span>
+                    <strong>Seno</strong> (sen Î¸) = Opuesto/Hipotenusa
+                </div>
+                <div class="trig-function">
+                    <span class="trig-icon">C</span>
+                    <strong>Coseno</strong> (cos Î¸) = Adyacente/Hipotenusa
+                </div>
+                <div class="trig-function">
+                    <span class="trig-icon">T</span>
+                    <strong>Tangente</strong> (tan Î¸) = Opuesto/Adyacente
+                </div>
+            </div>
+        </section>
+        
+        <section class="about-card">
+            <h3>Â¿QuÃ© nos hace diferentes?</h3>
+            <p>Trigonomix combina lo mejor de la educaciÃ³n tradicional con las ventajas de la tecnologÃ­a:</p>
+            <ul class="feature-list">
+                <li>Aprendizaje gamificado con puntajes y logros</li>
+                <li>AdaptaciÃ³n al ritmo de cada estudiante</li>
+                <li>Visualizaciones interactivas de conceptos abstractos</li>
+                <li>Disponibilidad 24/7 para practicar cuando quieras</li>
+            </ul>
+        </section>
+        
+        <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
+    </div>
+</div>
+
+<!-- Pantallas para modo multijugador -->
+<!-- Pantalla de configuraciÃ³n multijugador -->
+<div id="multiplayer-setup-screen" class="screen">
+    <h2 class="multiplayer-title">Modo 2 Jugadores</h2>
+    <div class="player-inputs-container">
+        <div class="player-input-group">
+            <label for="player1-name-input">Nombre del Jugador 1:</label>
+            <input type="text" id="player1-name-input" placeholder="Jugador 1" maxlength="20">
+        </div>
+        <div class="player-input-group">
+            <label for="player2-name-input">Nombre del Jugador 2:</label>
+            <input type="text" id="player2-name-input" placeholder="Jugador 2" maxlength="20">
+        </div>
+    </div>
+    
+    <div class="questions-selector">
+        <label>NÃºmero de preguntas:</label>
+        <div class="questions-options">
+            <div class="question-option" data-questions="10">10</div>
+            <div class="question-option selected" data-questions="20">20</div>
+            <div class="question-option" data-questions="30">30</div>
+        </div>
+    </div>
+    
+    <button id="start-multiplayer-button" class="action-button">Comenzar Partida</button>
+    <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
+</div>
+
+<!-- Pantalla de juego multijugador -->
+<div id="multiplayer-game-screen" class="screen">
+    <div class="player-turn-indicator player1-turn">
+        Turno de: <span id="current-player-name">Jugador 1</span>
+    </div>
+    
+    <div class="scores-container">
+        <div class="player-score active" id="player1-score">
+            <span class="player-name" id="display-player1-name">Jugador 1</span>
+            <span class="player-points" id="player1-points">0</span>
+        </div>
+        <div class="player-score" id="player2-score">
+            <span class="player-name" id="display-player2-name">Jugador 2</span>
+            <span class="player-points" id="player2-points">0</span>
+        </div>
+    </div>
+    
+    <h3 id="multiplayer-question-text">Cargando pregunta...</h3>
+    <div id="multiplayer-question-image-container">
+        <img id="multiplayer-question-image" src="" alt="Diagrama de la pregunta" style="display:none;"> 
+        <p id="multiplayer-image-value-info"></p>
+    </div>
+    <div id="multiplayer-options-container">
+        <!-- Las opciones serÃ¡n agregadas por JavaScript -->
+    </div>
+    <p id="multiplayer-feedback-text" class="feedback-animation"></p>
+    <button id="multiplayer-next-question-button" class="action-button" style="display:none;">Siguiente Pregunta</button>
+    <button id="quit-multiplayer-button" class="nav-button" data-target="start-screen">Salir del Juego</button>
+</div>
+
+<!-- Pantalla de resultados multijugador -->
+<div id="multiplayer-results-screen" class="screen">
+    <h2 class="results-title">Resultados del Juego</h2>
+    
+    <div id="winner-container">
+        <!-- SerÃ¡ completado dinÃ¡micamente por JS dependiendo si hay ganador o empate -->
+    </div>
+    
+    <div class="players-results-container">
+        <div class="player-result-card" id="player1-result">
+            <h3 class="result-player-name" id="result-player1-name">Jugador 1</h3>
+            <div class="player-stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="player1-final-points">0</div>
+                    <div class="stat-label">Puntos</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="player1-correct-answers">0</div>
+                    <div class="stat-label">Correctas</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="player1-incorrect-answers">0</div>
+                    <div class="stat-label">Incorrectas</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="player-result-card" id="player2-result">
+            <h3 class="result-player-name" id="result-player2-name">Jugador 2</h3>
+            <div class="player-stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="player2-final-points">0</div>
+                    <div class="stat-label">Puntos</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="player2-correct-answers">0</div>
+                    <div class="stat-label">Correctas</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="player2-incorrect-answers">0</div>
+                    <div class="stat-label">Incorrectas</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <button id="play-again-multiplayer-button" class="action-button">Jugar de Nuevo</button>
+    <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
+</div>
+
+        <!-- NUEVAS PANTALLAS PARA MODO ONLINE -->
+        <!-- Pantalla de menÃº multijugador online -->
+        <div id="online-menu-screen" class="screen">
+            <h2 class="online-title">Multijugador Online</h2>
+            <div class="online-options">
+                <button id="create-room-button" class="action-button online-option">
+                    <span class="option-icon">ðŸ </span>
+                    <span class="option-text">Crear Sala</span>
+                </button>
+                <button id="join-room-button" class="action-button online-option">
+                    <span class="option-icon">ðŸšª</span>
+                    <span class="option-text">Unirse a Sala</span>
+                </button>
+            </div>
+            <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
+        </div>
+
+        <!-- Pantalla crear sala -->
+        <div id="create-room-screen" class="screen">
+            <h2 class="online-title">Crear Sala</h2>
+            <div class="room-setup-container">
+                <div class="host-settings">
+                    <div class="questions-selector">
+                        <label>NÃºmero de preguntas:</label>
+                        <div class="questions-options">
+                            <div class="question-option" data-questions="10">10</div>
+                            <div class="question-option selected" data-questions="20">20</div>
+                            <div class="question-option" data-questions="30">30</div>
+                        </div>
+                    </div>
+                </div>
+                <button id="create-room-confirm-button" class="action-button">Crear Sala</button>
+            </div>
+            <button class="nav-button" data-target="online-menu-screen">Volver</button>
+        </div>
+
+        <!-- Pantalla unirse a sala -->
+        <div id="join-room-screen" class="screen">
+            <h2 class="online-title">Unirse a Sala</h2>
+            <div class="room-join-container">
+                <div class="room-code-input-container">
+                    <label for="room-code-input">CÃ³digo de Sala:</label>
+                    <input type="text" id="room-code-input" placeholder="Ingresa cÃ³digo de 6 dÃ­gitos" maxlength="6">
+                </div>
+                <div id="join-room-error" class="room-join-error"></div>
+                <button id="join-room-confirm-button" class="action-button">Unirse a Sala</button>
+            </div>
+            <button class="nav-button" data-target="online-menu-screen">Volver</button>
+        </div>
+
+        <!-- Pantalla de sala de espera -->
+        <div id="waiting-room-screen" class="screen">
+            <h2 class="online-title">Sala de Espera</h2>
+            <div class="room-info">
+                <div class="room-code-display">
+                    CÃ³digo de sala: <span id="room-code-display">------</span>
+                    <button id="copy-room-code" class="copy-button">Copiar</button>
+                </div>
+            </div>
+            <div class="players-list">
+                <div class="player-item host-player" id="host-player-item">
+                    <span class="player-icon">ðŸ‘‘</span>
+                    <span class="player-name" id="host-player-name">AnfitriÃ³n</span>
+                    <span class="player-status ready">Listo</span>
+                </div>
+                <div class="player-item guest-player" id="guest-player-item">
+                    <span class="player-icon">ðŸ‘¤</span>
+                    <span class="player-name" id="guest-player-name">Esperando jugador...</span>
+                    <span class="player-status">-</span>
+                </div>
+            </div>
+            <div class="waiting-room-controls">
+                <button id="start-online-game-button" class="action-button" disabled>Comenzar Juego</button>
+                <div class="game-setup-info">
+                    <p>Preguntas: <span id="questions-count">20</span></p>
+                </div>
+            </div>
+            <button id="leave-room-button" class="nav-button">Abandonar Sala</button>
+        </div>
+

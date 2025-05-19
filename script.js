@@ -11,12 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
         PERFECT_EASY: 'PERFECT_EASY',
         PERFECT_INTERMEDIATE: 'PERFECT_INTERMEDIATE',
         PERFECT_DIFFICULT: 'PERFECT_DIFFICULT',
-        STREAK_MASTER: 'STREAK_MASTER',
-        TRIGONOMETRY_NINJA: 'TRIGONOMETRY_NINJA',
-        MULTIPLAYER_CHAMPION: 'MULTIPLAYER_CHAMPION',
-        SPEED_DEMON: 'SPEED_DEMON',
-        COMEBACK_KING: 'COMEBACK_KING',
-        MATH_WIZARD: 'MATH_WIZARD'
+        SURVIVAL_MASTER: 'SURVIVAL_MASTER'
     };
 
     const ACHIEVEMENT_DETAILS = {
@@ -24,12 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
         [ACHIEVEMENT_IDS.PERFECT_EASY]: { name: "Balon de oro", description: "Completaste el nivel Fácil con puntaje perfecto." },
         [ACHIEVEMENT_IDS.PERFECT_INTERMEDIATE]: { name: "El proximo Albert Einstein", description: "Completaste el nivel Intermedio con puntaje perfecto." },
         [ACHIEVEMENT_IDS.PERFECT_DIFFICULT]: { name: "El orgullo de Pitágoras", description: "Completaste el nivel Difícil con puntaje perfecto." },
-        [ACHIEVEMENT_IDS.STREAK_MASTER]: { name: "¡Imparable!", description: "Respondiste correctamente 5 preguntas seguidas sin equivocarte." },
-        [ACHIEVEMENT_IDS.TRIGONOMETRY_NINJA]: { name: "Ninja Trigonométrico", description: "Completaste todos los niveles al menos una vez." },
-        [ACHIEVEMENT_IDS.MULTIPLAYER_CHAMPION]: { name: "Rey del Multijugador", description: "Ganaste 3 partidas en modo multijugador." },
-        [ACHIEVEMENT_IDS.SPEED_DEMON]: { name: "Velocista Matemático", description: "Completaste un nivel en menos de 2 minutos." },
-        [ACHIEVEMENT_IDS.COMEBACK_KING]: { name: "¡Remontada Épica!", description: "Ganaste una partida después de ir 20 puntos por detrás." },
-        [ACHIEVEMENT_IDS.MATH_WIZARD]: { name: "Mago de los Números", description: "Acumulaste un total de 1000 puntos en todos los modos de juego." }
+        [ACHIEVEMENT_IDS.SURVIVAL_MASTER]: { name: "Maestro de la Supervivencia", description: "Respondiste correctamente todas las preguntas en el Modo Supervivencia." }
     };
     
 
@@ -81,24 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameData = {
         score: 0,
         history: [],
-        streak: 0, // Para STREAK_MASTER
-        completedLevels: { easy: false, intermediate: false, difficult: false }, // Para TRIGONOMETRY_NINJA
-        multiplayerWins: 0, // Para MULTIPLAYER_CHAMPION
-        totalPoints: 0, // Para MATH_WIZARD
-        playerAchievements: {
-            FAST_ANSWER: null,
-            PERFECT_EASY: null,
-            PERFECT_INTERMEDIATE: null,
-            PERFECT_DIFFICULT: null,
-            STREAK_MASTER: null,
-            TRIGONOMETRY_NINJA: null,
-            MULTIPLAYER_CHAMPION: null,
-            SPEED_DEMON: null,
-            COMEBACK_KING: null,
-            MATH_WIZARD: null
-        },
-        comebackCandidate: false, // Para COMEBACK_KING
-        comebackDeficit: 0, // Para COMEBACK_KING
         currentLevel: null,
         currentQuestionIndex: 0,
         currentLevelQuestions: [],
@@ -108,13 +80,19 @@ document.addEventListener('DOMContentLoaded', () => {
             easy: { score: 0, name: "CPU" }, 
             intermediate: { score: 0, name: "CPU" }, 
             difficult: { score: 0, name: "CPU" } 
-        }
+        },
+        playerAchievements: {} // Stores unlocked achievements, e.g., { FAST_ANSWER: "10/27/2023" }
     };
+
+    // Initialize playerAchievements with all possible achievements set to null (locked)
+    Object.values(ACHIEVEMENT_IDS).forEach(id => {
+        gameData.playerAchievements[id] = null;
+    });
+
 
     // --- Questions Database ---
     // Types: 'define_ratio', 'identify_part', 'visual_select'
-    // Definir questions como variable global para que sea accesible desde online.js
-    window.questions = [
+    const questions = [
         // Easy: Conceptos Básicos
         {
             level: 'easy',
@@ -917,10 +895,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (isCorrect) {
             gameData.score += 10;
-            gameData.streak = (gameData.streak || 0) + 1;
-            if (gameData.streak === 5) {
-                unlockAchievement(ACHIEVEMENT_IDS.STREAK_MASTER);
-            }
             feedbackTextDisplay.textContent = feedbackMessages.correct || "¡Correcto!";
             feedbackTextDisplay.classList.add('correct', 'show');
             currentScoreDisplay.classList.add('updated'); 
@@ -931,7 +905,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 unlockAchievement(ACHIEVEMENT_IDS.FAST_ANSWER);
             }
         } else {
-            gameData.streak = 0; // Reinicia la racha si se equivoca
             feedbackTextDisplay.textContent = feedbackMessages.incorrect || "Incorrecto.";
             feedbackTextDisplay.classList.add('incorrect', 'show');
         }
@@ -988,6 +961,7 @@ document.addEventListener('DOMContentLoaded', () => {
             endGame(); // Completed all questions for the level
         }
     }
+
     /**
      * Ends the current game session.
      */
@@ -1014,34 +988,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Guardar historial y puntaje
-        gameData.history.push({
-            level: gameData.currentLevel,
-            score: gameData.score,
-            date: new Date().toLocaleDateString('es-ES')
-        });
-
-        // Actualizar niveles completados
-        gameData.completedLevels[gameData.currentLevel] = true;
-        // Logro Ninja Trigonométrico
-        if (gameData.completedLevels.easy && gameData.completedLevels.intermediate && gameData.completedLevels.difficult) {
-            unlockAchievement(ACHIEVEMENT_IDS.TRIGONOMETRY_NINJA);
-        }
-        // Logro Velocista Matemático
-        if (typeof gameStartTimestamp !== 'undefined') {
-            const totalTime = Math.floor((Date.now() - gameStartTimestamp) / 1000);
-            if (totalTime <= 120) {
-                unlockAchievement(ACHIEVEMENT_IDS.SPEED_DEMON);
-            }
-        }
-        // Logro Mago de los Números
-        gameData.totalPoints = (gameData.totalPoints || 0) + gameData.score;
-        if (gameData.totalPoints >= 1000) {
-            unlockAchievement(ACHIEVEMENT_IDS.MATH_WIZARD);
-        }
-        // Reiniciar racha al finalizar
-        gameData.streak = 0;
-        saveData();
+        saveData(); // Save final score, high scores, and any new achievements
         displayHighScoresOnLevelSelect(); // Update high scores on level select screen
         showScreen('game-over-screen');
     }
@@ -1258,17 +1205,6 @@ document.addEventListener('DOMContentLoaded', () => {
     loadData(); // Load any saved data
     displayHighScoresOnLevelSelect(); // Display high scores on level select screen
     showScreen('start-screen'); // Show the start screen first
-
-    // --- HOOKS PARA MULTIJUGADOR ---
-    // Lógica para MULTIPLAYER_CHAMPION y COMEBACK_KING debe integrarse en el flujo de multijugador.
-    // Ejemplo de cómo podrías desbloquearlos:
-    // function onMultiplayerWin(playerScore, opponentScore, wasComeback) {
-    //     gameData.multiplayerWins = (gameData.multiplayerWins || 0) + 1;
-    //     if (gameData.multiplayerWins >= 3) unlockAchievement(ACHIEVEMENT_IDS.MULTIPLAYER_CHAMPION);
-    //     if (wasComeback) unlockAchievement(ACHIEVEMENT_IDS.COMEBACK_KING);
-    //     saveData();
-    // }
-
     const aboutButton = document.getElementById('about-button');
     if (aboutButton) {
         aboutButton.addEventListener('click', () => showScreen('about-screen'));
@@ -1759,5 +1695,446 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('quit-multiplayer-button').addEventListener('click', () => {
         showScreen('start-screen');
     });
+
+    // --- MODO SUPERVIVENCIA ---
+    // Datos y estado del modo supervivencia
+    let survivalData = {
+        score: 0,                // Contador de preguntas correctas
+        bestScore: 0,            // Mejor puntuación histórica
+        questions: [],           // Preguntas mezcladas para el modo
+        currentQuestionIndex: 0, // Índice de la pregunta actual
+        timerValue: 20,          // Tiempo por pregunta en segundos
+        timerInterval: null,     // Intervalo del temporizador
+        allQuestions: false      // Indica si se han respondido todas las preguntas
+    };
+
+    // Referencias a elementos del DOM para el modo supervivencia
+    const survivalScreen = document.getElementById('survival-screen');
+    const survivalGameOverScreen = document.getElementById('survival-game-over-screen');
+    const survivalScoreDisplay = document.getElementById('survival-score');
+    const survivalTimerDisplay = document.getElementById('survival-timer-display');
+    const survivalTimerBar = document.getElementById('survival-timer-bar');
+    const survivalQuestionText = document.getElementById('survival-question-text');
+    const survivalOptionsContainer = document.getElementById('survival-options-container');
+    const survivalFeedbackText = document.getElementById('survival-feedback-text');
+    const survivalQuestionImage = document.getElementById('survival-question-image');
+    const survivalImageValueInfo = document.getElementById('survival-image-value-info');
+    const survivalFinalScoreText = document.getElementById('survival-final-score-text');
+    const survivalBestScoreText = document.getElementById('survival-best-score-text');
+    const survivalMessageContainer = document.getElementById('survival-message-container');
+
+    // Botón para iniciar el modo supervivencia
+    document.getElementById('survival-mode-button').addEventListener('click', () => {
+        startSurvivalMode();
+    });
+
+    // Botón para volver a intentar el modo supervivencia
+    document.getElementById('survival-play-again-button').addEventListener('click', () => {
+        startSurvivalMode();
+    });
+
+    /**
+     * Inicia el modo supervivencia
+     */
+    function startSurvivalMode() {
+        // Detener cualquier temporizador activo
+        stopSurvivalTimer();
+        
+        // Reiniciar datos
+        survivalData.score = 0;
+        survivalData.currentQuestionIndex = 0;
+        survivalData.allQuestions = false;
+        
+        // Cargar mejor puntuación desde localStorage
+        try {
+            if (localStorage.getItem('trigonomixSurvivalBestScore')) {
+                survivalData.bestScore = parseInt(localStorage.getItem('trigonomixSurvivalBestScore')) || 0;
+            }
+        } catch (e) {
+            console.error('Error al cargar la mejor puntuación:', e);
+            survivalData.bestScore = 0;
+        }
+        
+        // Preparar solo las preguntas que no usan imágenes o que usan "triangle_diagram.png"
+        survivalData.questions = questions.filter(question => {
+            return !question.image || question.image === 'triangle_diagram.png';
+        });
+        
+        // Mezclar las preguntas filtradas
+        shuffleArray(survivalData.questions);
+        
+        // Limpiar cualquier estado anterior
+        survivalFeedbackText.textContent = "";
+        survivalFeedbackText.className = "feedback-animation";
+        survivalQuestionImage.style.display = "none";
+        survivalImageValueInfo.style.display = "none";
+        document.getElementById('survival-question-image-container').style.display = "none";
+        
+        // Mostrar pantalla y cargar primera pregunta
+        showScreen('survival-screen');
+        loadSurvivalQuestion();
+    }
+
+    /**
+     * Carga y muestra la pregunta actual en el modo supervivencia
+     */
+    function loadSurvivalQuestion() {
+        try {
+            // Verificar si hemos terminado todas las preguntas
+            if (!survivalData.questions || survivalData.currentQuestionIndex >= survivalData.questions.length) {
+                survivalData.allQuestions = true;
+                endSurvivalMode();
+                return;
+            }
+            
+            const currentQuestion = survivalData.questions[survivalData.currentQuestionIndex];
+            
+            if (!currentQuestion) {
+                console.error('Pregunta actual no encontrada, finalizando modo supervivencia');
+                endSurvivalMode();
+                return;
+            }
+            
+            // Actualizar UI con la pregunta
+            survivalQuestionText.textContent = currentQuestion.text || "Pregunta sin texto";
+            survivalFeedbackText.textContent = "";
+            survivalFeedbackText.className = "feedback-animation";
+            
+            // Actualizar contador de preguntas correctas
+            survivalScoreDisplay.textContent = `Preguntas correctas: ${survivalData.score}`;
+        
+            // Manejar imagen de la pregunta si existe
+            if (currentQuestion.image) {
+                // Primero ocultar la imagen y el contenedor mientras se carga
+                survivalQuestionImage.style.display = "none";
+                document.getElementById('survival-question-image-container').style.display = "none";
+                
+                // Crear una nueva imagen para precargarla y procesarla
+                const preloadImg = new Image();
+                
+                preloadImg.onload = function() {
+                    // Forzar un tamaño máximo para todas las imágenes
+                    const maxWidth = 450;
+                    const maxHeight = 160;
+                    
+                    // Determinar si estamos en un dispositivo móvil
+                    const isMobile = window.innerWidth <= 768;
+                    
+                    // Ajustar tamaños para dispositivos móviles
+                    const deviceMaxWidth = isMobile ? 300 : maxWidth;
+                    const deviceMaxHeight = isMobile ? 130 : maxHeight;
+                    
+                    // Crear un canvas para redimensionar la imagen si es necesario
+                    const canvas = document.createElement('canvas');
+                    let width = preloadImg.width;
+                    let height = preloadImg.height;
+                    
+                    // Calcular las nuevas dimensiones manteniendo la proporción
+                    if (width > deviceMaxWidth || height > deviceMaxHeight) {
+                        const ratio = Math.min(deviceMaxWidth / width, deviceMaxHeight / height);
+                        width *= ratio;
+                        height *= ratio;
+                    }
+                    
+                    // Configurar el canvas con las nuevas dimensiones
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    // Dibujar la imagen redimensionada en el canvas
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(preloadImg, 0, 0, width, height);
+                    
+                    // Usar la imagen redimensionada
+                    survivalQuestionImage.src = canvas.toDataURL('image/png');
+                    survivalQuestionImage.alt = currentQuestion.image_alt || "Imagen de la pregunta";
+                    
+                    // Aplicar estilos estrictos adicionales
+                    const isMobileView = window.innerWidth <= 768;
+                    
+                    survivalQuestionImage.style.maxWidth = isMobileView ? "95%" : "90%";
+                    survivalQuestionImage.style.maxHeight = isMobileView ? "130px" : "160px";
+                    survivalQuestionImage.style.height = "auto";
+                    survivalQuestionImage.style.width = "auto";
+                    survivalQuestionImage.style.objectFit = "contain";
+                    survivalQuestionImage.style.objectPosition = "center";
+                    survivalQuestionImage.style.boxShadow = "none";
+                    survivalQuestionImage.style.display = "block";
+                    survivalQuestionImage.style.margin = "0 auto";
+                    
+                    // Mostrar el contenedor con la imagen ya procesada
+                    document.getElementById('survival-question-image-container').style.display = "flex";
+                };
+                
+                // Manejar errores de carga
+                preloadImg.onerror = function() {
+                    console.error("Error al cargar la imagen:", currentQuestion.image);
+                    survivalQuestionImage.style.display = "none";
+                    document.getElementById('survival-question-image-container').style.display = "none";
+                };
+                
+                // Iniciar la carga de la imagen
+                preloadImg.src = currentQuestion.image;
+                
+                // Si hay información adicional para la imagen
+                if (currentQuestion.image_value_info) {
+                    survivalImageValueInfo.textContent = currentQuestion.image_value_info;
+                    survivalImageValueInfo.style.display = "block";
+                } else {
+                    survivalImageValueInfo.style.display = "none";
+                }
+            } else {
+                survivalQuestionImage.style.display = "none";
+                survivalImageValueInfo.style.display = "none";
+                document.getElementById('survival-question-image-container').style.display = "none";
+            }
+            
+            // Limpiar y crear opciones de respuesta
+            survivalOptionsContainer.innerHTML = "";
+            
+            // Verificar si hay opciones disponibles
+            if (!currentQuestion.options || !Array.isArray(currentQuestion.options) || currentQuestion.options.length === 0) {
+                console.error('No hay opciones disponibles para esta pregunta');
+                survivalOptionsContainer.innerHTML = '<p class="error-message">Error: No hay opciones disponibles</p>';
+                return;
+            }
+            
+            // Copiar y mezclar opciones para mostrarlas en orden aleatorio
+            const shuffledOptions = [...currentQuestion.options];
+            shuffleArray(shuffledOptions);
+            
+            // Crear botones para cada opción
+            shuffledOptions.forEach((option, index) => {
+                const optionButton = document.createElement('button');
+                optionButton.classList.add('option-button');
+                
+                // Si la opción tiene una imagen
+                if (option.image) {
+                    const img = document.createElement('img');
+                    img.src = option.image;
+                    img.alt = option.alt || "Opción " + (index + 1);
+                    img.classList.add('option-image');
+                    optionButton.appendChild(img);
+                } else {
+                    // Si es texto
+                    optionButton.textContent = option.text || `Opción ${index + 1}`;
+                }
+                
+                // Añadir evento de clic para manejar la selección
+                optionButton.addEventListener('click', () => {
+                    handleSurvivalAnswerSelection(index, option, currentQuestion.feedback || {
+                        correct: "¡Correcto!",
+                        incorrect: "Incorrecto"
+                    });
+                });
+                
+                survivalOptionsContainer.appendChild(optionButton);
+            });
+            
+            // Iniciar temporizador
+            startSurvivalTimer();
+            
+        } catch (error) {
+            console.error('Error al cargar la pregunta de supervivencia:', error);
+            endSurvivalMode();
+        }
+    }
+
+    /**
+     * Maneja la selección de respuesta en el modo supervivencia
+     */
+    function handleSurvivalAnswerSelection(selectedIndex, selectedOption, feedbackMessages) {
+        // Detener el temporizador
+        stopSurvivalTimer();
+        
+        // Deshabilitar todos los botones de opciones
+        const optionButtons = survivalOptionsContainer.querySelectorAll('.option-button');
+        optionButtons.forEach(button => {
+            button.disabled = true;
+            button.classList.add('disabled');
+        });
+        
+        // Verificar si la respuesta es correcta
+        if (selectedOption.correct) {
+            // Respuesta correcta
+            survivalData.score++;
+            survivalScoreDisplay.textContent = `Preguntas correctas: ${survivalData.score}`;
+            
+            // Mostrar retroalimentación
+            survivalFeedbackText.textContent = feedbackMessages.correct;
+            survivalFeedbackText.className = "feedback-animation correct show";
+            
+            // Reproducir sonido de respuesta correcta
+            playSoundFeedback(true);
+            
+            // Pasar a la siguiente pregunta después de un breve retraso
+            setTimeout(() => {
+                survivalData.currentQuestionIndex++;
+                loadSurvivalQuestion();
+            }, 1500);
+        } else {
+            // Respuesta incorrecta - fin del juego
+            survivalFeedbackText.textContent = feedbackMessages.incorrect;
+            survivalFeedbackText.className = "feedback-animation incorrect show";
+            
+            // Reproducir sonido de respuesta incorrecta
+            playSoundFeedback(false);
+            
+            // Finalizar el modo después de mostrar el feedback
+            setTimeout(() => {
+                endSurvivalMode();
+            }, 1500);
+        }
+    }
+
+    /**
+     * Inicia el temporizador para el modo supervivencia
+     */
+    function startSurvivalTimer() {
+        survivalData.timerValue = 20; // Reiniciar a 20 segundos
+        updateSurvivalTimerDisplay();
+        
+        // Limpiar cualquier intervalo existente
+        if (survivalData.timerInterval) {
+            clearInterval(survivalData.timerInterval);
+        }
+        
+        // Iniciar nuevo intervalo
+        survivalData.timerInterval = setInterval(() => {
+            survivalData.timerValue--;
+            updateSurvivalTimerDisplay();
+            
+            if (survivalData.timerValue <= 0) {
+                handleSurvivalTimeout();
+            }
+        }, 1000);
+    }
+
+    /**
+     * Detiene el temporizador del modo supervivencia
+     */
+    function stopSurvivalTimer() {
+        if (survivalData.timerInterval) {
+            clearInterval(survivalData.timerInterval);
+            survivalData.timerInterval = null;
+        }
+    }
+
+    /**
+     * Actualiza la visualización del temporizador en el modo supervivencia
+     */
+    function updateSurvivalTimerDisplay() {
+        survivalTimerDisplay.textContent = survivalData.timerValue;
+        
+        // Actualizar la barra de progreso
+        const percentage = (survivalData.timerValue / 20) * 100;
+        survivalTimerBar.style.width = `${percentage}%`;
+        
+        // Cambiar color según el tiempo restante
+        if (survivalData.timerValue <= 5) {
+            survivalTimerBar.style.backgroundColor = "#ff4d4d"; // Rojo para poco tiempo
+        } else if (survivalData.timerValue <= 10) {
+            survivalTimerBar.style.backgroundColor = "#ffcc00"; // Amarillo para tiempo medio
+        } else {
+            survivalTimerBar.style.backgroundColor = "#4CAF50"; // Verde para tiempo suficiente
+        }
+    }
+
+    /**
+     * Maneja cuando se agota el tiempo en el modo supervivencia
+     */
+    function handleSurvivalTimeout() {
+        stopSurvivalTimer();
+        
+        // Deshabilitar todos los botones de opciones
+        const optionButtons = survivalOptionsContainer.querySelectorAll('.option-button');
+        optionButtons.forEach(button => {
+            button.disabled = true;
+            button.classList.add('disabled');
+        });
+        
+        // Mostrar mensaje de tiempo agotado
+        survivalFeedbackText.textContent = "¡Tiempo agotado!";
+        survivalFeedbackText.className = "feedback-animation incorrect show";
+        
+        // Reproducir sonido de respuesta incorrecta
+        playSoundFeedback(false);
+        
+        // Finalizar el modo después de mostrar el feedback
+        setTimeout(() => {
+            endSurvivalMode();
+        }, 1500);
+    }
+
+    /**
+     * Finaliza el modo supervivencia y muestra la pantalla de resultados
+     */
+    function endSurvivalMode() {
+        try {
+            // Detener el temporizador si está activo
+            stopSurvivalTimer();
+            
+            // Actualizar mejor puntuación si es necesario
+            if (survivalData.score > survivalData.bestScore) {
+                survivalData.bestScore = survivalData.score;
+                try {
+                    localStorage.setItem('trigonomixSurvivalBestScore', survivalData.bestScore.toString());
+                } catch (e) {
+                    console.error('Error al guardar la mejor puntuación:', e);
+                }
+            }
+            
+            // Actualizar textos de la pantalla de resultados
+            survivalFinalScoreText.textContent = `Preguntas correctas: ${survivalData.score}`;
+            survivalBestScoreText.textContent = `Tu mejor racha: ${survivalData.bestScore}`;
+            
+            // Crear mensaje según el resultado
+            let messageHTML = '';
+            
+            // Verificar que las preguntas existan y tengan una longitud válida
+            const totalQuestions = survivalData.questions && survivalData.questions.length ? survivalData.questions.length : 1;
+            
+            if (survivalData.allQuestions && survivalData.score === totalQuestions && totalQuestions > 1) {
+                // Desbloquear logro si respondió todas correctamente
+                try {
+                    unlockAchievement(ACHIEVEMENT_IDS.SURVIVAL_MASTER);
+                } catch (e) {
+                    console.error('Error al desbloquear logro:', e);
+                }
+                
+                messageHTML = `
+                    <div class="survival-achievement">
+                        <div class="achievement-icon">🏆</div>
+                        <div class="achievement-text">
+                            <h3>¡LOGRO DESBLOQUEADO!</h3>
+                            <p>Maestro de la Supervivencia</p>
+                        </div>
+                    </div>
+                    <p class="survival-message">¡Increíble! Has respondido correctamente todas las preguntas. ¡Eres un verdadero maestro de la trigonometría!</p>
+                `;
+            } else if (survivalData.score >= Math.floor(totalQuestions * 0.7)) {
+                messageHTML = `<p class="survival-message">¡Excelente trabajo! Has demostrado un gran conocimiento de trigonometría.</p>`;
+            } else if (survivalData.score >= Math.floor(totalQuestions * 0.4)) {
+                messageHTML = `<p class="survival-message">Buen intento. Sigue practicando para mejorar tu comprensión de las razones trigonométricas.</p>`;
+            } else {
+                messageHTML = `<p class="survival-message">No te desanimes. La práctica constante es clave para dominar la trigonometría.</p>`;
+            }
+            
+            survivalMessageContainer.innerHTML = messageHTML;
+            
+            // Mostrar pantalla de resultados
+            showScreen('survival-game-over-screen');
+        } catch (error) {
+            console.error('Error al finalizar el modo supervivencia:', error);
+            // Mostrar un mensaje de error genérico
+            alert('Ha ocurrido un error. Por favor, recarga la página.');
+            // Intentar mostrar la pantalla de resultados de todos modos
+            try {
+                showScreen('survival-game-over-screen');
+            } catch (e) {
+                // Si todo falla, volver a la pantalla principal
+                showScreen('main-menu');
+            }
+        }
+    }
 
 });
