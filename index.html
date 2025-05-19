@@ -3,6 +3,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trigonomix</title>
+    <link rel="shortcut icon" href="logo.ico" type="image/x-icon">
+
+
     <link rel="stylesheet" href="style.css">
     <script type="importmap">
     {
@@ -11,31 +14,51 @@
         }
     }
     </script>
-    <!-- Cargar Socket.io directamente desde CDN -->
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" 
-        integrity="sha384-mZLF4UVrpi/QTWPA7BjNPEnkIfRFn4ZEO3Qt/HFklTJBj/gBOV8G3HcKn4NfQblz" 
-        crossorigin="anonymous"></script>
+    <!-- Cargar Socket.io desde CDN -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script>
-        window.addEventListener('DOMContentLoaded', function() {
-            console.log('Verificando Socket.io...');
-            if (typeof io !== 'undefined') {
-                console.log('Socket.io cargado correctamente');
-                // Si tienes una función de inicialización, puedes llamarla aquí
-                if (typeof initSocketConnection === 'function') {
-                    initSocketConnection();
-                }
-            } else {
-                console.error('Error: Socket.io no se pudo cargar');
-                // Mostrar mensaje de error en la UI para modo online
-                const onlineButton = document.getElementById('online-button');
-                if (onlineButton) {
-                    onlineButton.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        alert('No se pudo cargar Socket.io. El modo online no está disponible.');
-                    });
-                }
+        // Verificar si Socket.io se cargó correctamente
+        function checkSocketIO() {
+            if (typeof io === 'undefined') {
+                console.error('Error: No se pudo cargar Socket.io');
+                // Mostrar mensaje de error al usuario
+                const errorDiv = document.createElement('div');
+                errorDiv.style.position = 'fixed';
+                errorDiv.style.top = '10px';
+                errorDiv.style.left = '50%';
+                errorDiv.style.transform = 'translateX(-50%)';
+                errorDiv.style.backgroundColor = '#ffebee';
+                errorDiv.style.color = '#c62828';
+                errorDiv.style.padding = '10px 20px';
+                errorDiv.style.borderRadius = '4px';
+                errorDiv.style.zIndex = '1000';
+                errorDiv.textContent = 'Error: No se pudo cargar la funcionalidad en línea. Por favor, verifica tu conexión a Internet y recarga la página.';
+                document.body.appendChild(errorDiv);
+                return false;
             }
-        });
+            console.log('Socket.io cargado correctamente');
+            return true;
+        }
+
+        // Función para inicializar la conexión cuando todo esté listo
+        function initOnlineMode() {
+            if (checkSocketIO() && typeof initSocketConnection === 'function') {
+                console.log('Inicializando conexión Socket.io...');
+                initSocketConnection();
+            } else {
+                console.warn('La función initSocketConnection no está disponible aún');
+                // Reintentar después de un breve retraso
+                setTimeout(initOnlineMode, 500);
+            }
+        }
+
+        // Inicializar cuando el DOM esté completamente cargado
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initOnlineMode);
+        } else {
+            // Si el DOM ya está cargado, inicializar directamente
+            initOnlineMode();
+        }
     </script>
 </head>
 <body>
@@ -53,30 +76,30 @@
                 <label for="player-name-input">Nombre del Jugador:</label>
                 <input type="text" id="player-name-input" placeholder="Jugador" maxlength="20">
             </div>
-            <button id="start-game-button" class="action-button">Comenzar</button>
-            <button id="survival-mode-button" class="action-button">Modo Supervivencia</button>
-            <button id="multiplayer-button" class="action-button">Modo 2 Jugadores</button>
-            <button id="online-button" class="action-button">Multijugador Online</button>
-            <button id="theory-button" class="secondary-button">Teoría</button>
-            <button id="history-button" class="secondary-button">Historial</button>
-            <button id="achievements-button" class="secondary-button">Logros</button>
-            <button id="authors-button" class="secondary-button">Autores</button>
-            <button id="about-button" class="secondary-button">Acerca de</button>
+            <button id="start-game-button" class="action-button">🚀Comenzar</button>
+            <button id="survival-button" class="action-button">⏳Modo Supervivencia</button>
+            <button id="multiplayer-button" class="action-button">🎮Modo 2 Jugadores</button>
+            <button id="online-button" class="action-button">🌐Multijugador Online</button>
+            <button id="theory-button" class="secondary-button">📚Teoría</button>
+            <button id="history-button" class="secondary-button">📜Historial</button>
+            <button id="achievements-button" class="secondary-button">🏆Logros</button>
+            <button id="authors-button" class="secondary-button">🧑‍💻Autores</button>
+            <button id="about-button" class="secondary-button">ℹ️ Acerca de</button>
         </div>
 
         <!-- Level Select Screen -->
         <div id="level-select-screen" class="screen">
             <h2>Selecciona un Nivel</h2>
             <button id="level-easy" data-level="easy" class="level-button action-button">
-                Fácil (Conceptos)
+                🟢 Fácil (Conceptos)
                 <span class="level-highscore" data-level="easy">Mejor: 0 (CPU)</span>
             </button>
             <button id="level-intermediate" data-level="intermediate" class="level-button action-button">
-                Intermedio (Identificación)
+                🟡 Intermedio (Identificación)
                 <span class="level-highscore" data-level="intermediate">Mejor: 0 (CPU)</span>
             </button>
             <button id="level-difficult" data-level="difficult" class="level-button action-button">
-                Difícil (Relaciones)
+               🔴 Difícil (Relaciones)
                 <span class="level-highscore" data-level="difficult">Mejor: 0 (CPU)</span>
             </button>
             <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
@@ -528,238 +551,114 @@
             <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
         </div>
 
-        <!-- NUEVAS PANTALLAS PARA MODO ONLINE -->
-        <!-- Pantalla de menú multijugador online -->
-        <div id="online-menu-screen" class="screen">
-            <h2 class="online-title">Multijugador Online</h2>
-            <div class="online-options">
-                <button id="create-room-button" class="action-button online-option">
-                    <span class="option-icon">🏠</span>
-                    <span class="option-text">Crear Sala</span>
-                </button>
-                <button id="join-room-button" class="action-button online-option">
-                    <span class="option-icon">🚪</span>
-                    <span class="option-text">Unirse a Sala</span>
-                </button>
+        <!-- Survival Mode Screen -->
+        <div id="modo-supervivencia" class="screen">
+            <div class="survival-header">
+                <div class="survival-score-container">
+                    <span id="survival-score">Aciertos: 0</span>
+                </div>
+                <div class="survival-question-counter">
+                    <span id="survival-question-number">Pregunta: 1</span>
+                </div>
+                <div class="survival-timer-container">
+                    <div id="survival-timer-text">Tiempo: 20</div>
+                    <div id="survival-timer-bar-container">
+                        <div id="survival-timer-bar"></div>
+                    </div>
+                </div>
             </div>
+
+            <h3 id="survival-question-text">Cargando pregunta...</h3>
+            <div id="survival-question-image-container">
+                <img id="survival-question-image" src="" alt="Diagrama de la pregunta" style="display:none;"> 
+                <p id="survival-image-value-info"></p>
+            </div>
+            <div id="survival-options-container">
+                <!-- Options will be populated by JS -->
+            </div>
+            <p id="survival-feedback-text" class="feedback-animation"></p>
+            <button id="quit-survival-button" class="nav-button" data-target="start-screen">Salir del Juego</button>
+        </div>
+
+        <!-- Survival Game Over Screen -->
+        <div id="survival-game-over-screen" class="screen">
+            <h2 id="survival-game-over-title">¡Juego Terminado!</h2>
+            <div class="survival-result-container">
+                <div class="survival-result-score">
+                    <span class="result-label">Preguntas respondidas correctamente:</span>
+                    <span id="survival-final-score" class="result-value">0</span>
+                </div>
+                <p id="survival-message" class="result-message">¡Buen intento! Sigue practicando para mejorar.</p>
+            </div>
+            <button id="survival-play-again-button" class="action-button">Jugar de Nuevo</button>
             <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
         </div>
 
-        <!-- Pantalla crear sala -->
-        <div id="create-room-screen" class="screen">
-            <h2 class="online-title">Crear Sala</h2>
-            <div class="room-setup-container">
-                <div class="host-settings">
-                    <div class="questions-selector">
-                        <label>Número de preguntas:</label>
-                        <div class="questions-options">
-                            <div class="question-option" data-questions="10">10</div>
-                            <div class="question-option selected" data-questions="20">20</div>
-                            <div class="question-option" data-questions="30">30</div>
-                        </div>
-                    </div>
-                </div>
-                <button id="create-room-confirm-button" class="action-button">Crear Sala</button>
-            </div>
-            <button class="nav-button" data-target="online-menu-screen">Volver</button>
-        </div>
-
-        <!-- Pantalla unirse a sala -->
-        <div id="join-room-screen" class="screen">
-            <h2 class="online-title">Unirse a Sala</h2>
-            <div class="room-join-container">
-                <div class="room-code-input-container">
-                    <label for="room-code-input">Código de Sala:</label>
-                    <input type="text" id="room-code-input" placeholder="Ingresa código de 6 dígitos" maxlength="6">
-                </div>
-                <div id="join-room-error" class="room-join-error"></div>
-                <button id="join-room-confirm-button" class="action-button">Unirse a Sala</button>
-            </div>
-            <button class="nav-button" data-target="online-menu-screen">Volver</button>
-        </div>
-
-        <!-- Pantalla de sala de espera -->
-        <div id="waiting-room-screen" class="screen">
-            <h2 class="online-title">Sala de Espera</h2>
-            <div class="room-info">
-                <div class="room-code-display">
-                    Código de sala: <span id="room-code-display">------</span>
-                    <button id="copy-room-code" class="copy-button">Copiar</button>
-                </div>
-            </div>
-            <div class="players-list">
-                <div class="player-item host-player" id="host-player-item">
-                    <span class="player-icon">👑</span>
-                    <span class="player-name" id="host-player-name">Anfitrión</span>
-                    <span class="player-status ready">Listo</span>
-                </div>
-                <div class="player-item guest-player" id="guest-player-item">
-                    <span class="player-icon">👤</span>
-                    <span class="player-name" id="guest-player-name">Esperando jugador...</span>
-                    <span class="player-status">-</span>
-                </div>
-            </div>
-            <div class="waiting-room-controls">
-                <button id="start-online-game-button" class="action-button" disabled>Comenzar Juego</button>
-                <div class="game-setup-info">
-                    <p>Preguntas: <span id="questions-count">20</span></p>
-                </div>
-            </div>
-            <button id="leave-room-button" class="nav-button">Abandonar Sala</button>
-        </div>
-
-        <!-- Pantalla de juego online -->
-        <div id="online-game-screen" class="screen">
-            <div class="online-game-header">
-                <div class="player-turn-indicator" id="online-turn-indicator">
-                    Turno de: <span id="online-current-player-name">Jugador</span>
-                </div>
-                <div class="question-counter-online">
-                    Pregunta: <span id="online-question-counter">1/20</span>
-                </div>
-                <div class="online-timer" id="online-timer">
-                    Tiempo: <span id="online-timer-value">15</span>
-                </div>
-            </div>
-            
-            <div class="online-players-score">
-                <div class="online-player-score active" id="online-player1-score">
-                    <span class="player-name" id="online-player1-name">Jugador 1</span>
-                    <span class="player-points" id="online-player1-points">0</span>
-                </div>
-                <div class="online-player-score" id="online-player2-score">
-                    <span class="player-name" id="online-player2-name">Jugador 2</span>
-                    <span class="player-points" id="online-player2-points">0</span>
-                </div>
-            </div>
-            
-            <h3 id="online-question-text">Cargando pregunta...</h3>
-            <div id="online-question-image-container">
-                <img id="online-question-image" src="" alt="Diagrama de la pregunta" style="display:none;"> 
-                <p id="online-image-value-info"></p>
-            </div>
-            <div id="online-options-container">
-                <!-- Las opciones serán agregadas por JavaScript -->
-            </div>
-            <p id="online-feedback-text" class="feedback-animation"></p>
-        </div>
-
-        <!-- Pantalla de resultados online -->
-        <div id="online-results-screen" class="screen">
-            <h2 class="results-title">Resultados del Juego Online</h2>
-            
-            <div id="online-winner-container">
-                <!-- Será completado dinámicamente por JS dependiendo si hay ganador o empate -->
-            </div>
-            
-            <div class="players-results-container">
-                <div class="player-result-card" id="online-player1-result">
-                    <h3 class="result-player-name" id="online-result-player1-name">Jugador 1</h3>
-                    <div class="player-stats">
-                        <div class="stat-item">
-                            <div class="stat-value" id="online-player1-final-points">0</div>
-                            <div class="stat-label">Puntos</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value" id="online-player1-correct-answers">0</div>
-                            <div class="stat-label">Correctas</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value" id="online-player1-incorrect-answers">0</div>
-                            <div class="stat-label">Incorrectas</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="player-result-card" id="online-player2-result">
-                    <h3 class="result-player-name" id="online-result-player2-name">Jugador 2</h3>
-                    <div class="player-stats">
-                        <div class="stat-item">
-                            <div class="stat-value" id="online-player2-final-points">0</div>
-                            <div class="stat-label">Puntos</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value" id="online-player2-correct-answers">0</div>
-                            <div class="stat-label">Correctas</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value" id="online-player2-incorrect-answers">0</div>
-                            <div class="stat-label">Incorrectas</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="online-results-controls">
-                <button id="online-play-again-button" class="action-button">Jugar de Nuevo</button>
-                <button id="online-back-to-lobby-button" class="action-button">Volver al Lobby</button>
-                <button class="nav-button" data-target="start-screen">Salir al Menú Principal</button>
-            </div>
-        </div>
-            
-            <!-- Modo Supervivencia -->
-            <div id="survival-screen" class="screen">
-                <div class="game-header survival-header">
-                    <span id="survival-score">Preguntas correctas: 0</span>
-                    <div class="timer-container">
-                        <div class="timer-bar-container">
-                            <div id="survival-timer-bar" class="timer-bar"></div>
-                        </div>
-                        <span id="survival-timer-display">20</span>
-                    </div>
-                </div>
-                <h3 id="survival-question-text">Cargando pregunta...</h3>
-                <div id="survival-question-image-container">
-                    <img id="survival-question-image" src="" alt="Diagrama de la pregunta" style="display:none; max-width:100%; height:auto;"> 
-                    <p id="survival-image-value-info"></p>
-                </div>
-                <div id="survival-options-container">
-                    <!-- Options will be populated by JS -->
-                </div>
-                <p id="survival-feedback-text" class="feedback-animation"></p>
-                <button id="survival-quit-button" class="nav-button" data-target="start-screen">Salir del Juego</button>
-            </div>
-
-            <!-- Game Over Supervivencia -->
-            <div id="survival-game-over-screen" class="screen">
-                <h2 id="survival-game-over-title">¡Modo Supervivencia Terminado!</h2>
-                <div class="survival-results">
-                    <p id="survival-final-score-text">Preguntas correctas: 0</p>
-                    <p id="survival-best-score-text">Tu mejor racha: 0</p>
-                    <div id="survival-message-container"></div>
-                </div>
-                <button id="survival-play-again-button" class="action-button">Volver a Intentar</button>
-                <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
-            </div>
-        </div>
-        
-        <script src="script.js"></script>
-        <script src="online.js"></script>
-        
-            
-        
-        <script>
-            document.getElementById('toggle-theme-button').addEventListener('click', function () {
-                document.body.classList.toggle('dark-mode');
-                
-                const isDarkMode = document.body.classList.contains('dark-mode');
-                this.textContent = isDarkMode ? 'Modo claro' : 'Modo oscuro';
-            });
-        </script>
+    </div>
+    
+    <!-- Scripts -->
+    <script>
+        // Script para el botón de cambio de tema
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleButton = document.getElementById('toggle-theme-button');
+            if (toggleButton) {
+                toggleButton.addEventListener('click', function () {
+                    document.body.classList.toggle('dark-mode');
+                    const isDarkMode = document.body.classList.contains('dark-mode');
+                    this.textContent = isDarkMode ? 'Modo claro' : 'Modo oscuro';
+                });
+            }
+        });
+    </script>
+    
+    <!-- Script para efectos de sonido -->
     <script>
         // Crea un objeto Audio para el sonido
         const clickSound = new Audio('click.mp3');
 
-        // Selecciona todos los botones
-        const buttons = document.querySelectorAll('button');
+        // Función para inicializar los efectos de sonido
+        function initSoundEffects() {
+            // Selecciona todos los botones
+            const buttons = document.querySelectorAll('button');
 
-        // Agrega evento click a cada botón para reproducir sonido
-        buttons.forEach(button => {
-            button.addEventListener('click', () => {
-            // Reinicia el sonido para que pueda sonar repetido rápido
-            clickSound.currentTime = 0;
-            clickSound.play();
+            // Agrega evento click a cada botón para reproducir sonido
+            buttons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Reinicia el sonido para que pueda sonar repetido rápido
+                    if (clickSound) {
+                        clickSound.currentTime = 0;
+                        clickSound.play().catch(e => console.error('Error reproduciendo sonido:', e));
+                    }
+                });
             });
+        }
+
+
+        // Inicializar efectos de sonido cuando el DOM esté completamente cargado
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initSoundEffects);
+        } else {
+            initSoundEffects();
+        }
+    </script>
+    
+    <!-- Script para el modo online - cargado con defer para asegurar que se ejecute en orden -->
+    <script src="online.js"></script>
+    
+    <!-- Script principal - cargado al final -->
+    <script src="script.js" type="module"></script>
+    
+    <!-- Inicialización de Socket.io -->
+    <script>
+        // Esperar a que todo el DOM esté listo
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar si el botón de online existe antes de intentar inicializar
+            if (document.getElementById('online-button') && typeof initSocketConnection === 'function') {
+                console.log('Inicializando Socket.io...');
+                initSocketConnection();
+            } else {
+                console.warn('No se pudo inicializar Socket.io: botón no encontrado o función no disponible');
+            }
         });
     </script>
 </body>
