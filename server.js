@@ -19,7 +19,7 @@ io.on('connection', (socket) => {
     console.log('Nuevo usuario conectado:', socket.id);
 
     // Evento para crear una sala
-    socket.on('createRoom', ({ playerName }) => {
+    socket.on('createRoom', ({ playerName, totalQuestions }) => {
         // Generar código de sala alfanumérico (longitud 6)
         const roomCode = generateRoomCode();
         
@@ -38,7 +38,7 @@ io.on('connection', (socket) => {
                 currentQuestionIndex: 0,
                 currentTurn: 0, // Índice del jugador actual
                 questions: [],
-                totalQuestions: 20,
+                totalQuestions: totalQuestions || 20, // Usar el valor recibido o 20 por defecto
                 timerValue: 15
             }
         };
@@ -53,7 +53,8 @@ io.on('connection', (socket) => {
                 id: socket.id,
                 name: playerName,
                 isHost: true
-            }
+            },
+            totalQuestions: rooms[roomCode].gameState.totalQuestions
         });
         
         console.log(`Sala creada: ${roomCode} por ${playerName}`);
@@ -88,10 +89,11 @@ io.on('connection', (socket) => {
         // Unir socket a la sala
         socket.join(roomCode);
         
-        // Enviar confirmación al cliente
+        // Enviar confirmación al cliente, incluyendo totalQuestions
         socket.emit('roomJoined', {
             roomCode,
-            playerInfo
+            playerInfo,
+            totalQuestions: rooms[roomCode].gameState.totalQuestions
         });
         
         // Notificar al host que un jugador se ha unido
@@ -265,7 +267,8 @@ function startGame(roomCode) {
     // Notificar inicio del juego
     io.to(roomCode).emit('gameStarted', {
         firstPlayerId: room.players[0].id,
-        question: getNextQuestion(roomCode)
+        question: getNextQuestion(roomCode),
+        players: room.players // Enviar info de ambos jugadores
     });
 }
 
@@ -297,7 +300,8 @@ function nextTurn(roomCode) {
     io.to(roomCode).emit('nextTurn', {
         currentPlayerId: room.players[gameState.currentTurn].id,
         currentQuestionIndex: gameState.currentQuestionIndex,
-        question: nextQuestion
+        question: nextQuestion,
+        players: room.players // Enviar info de ambos jugadores
     });
 }
 
@@ -403,4 +407,4 @@ function generateRoomCode() {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Servidor corriendo en puerto ${PORT}`);
-}); 
+});
