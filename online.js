@@ -770,37 +770,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 totalQuestions: onlineGameState.totalQuestions
             });
             
-            // Preparar preguntas (conseguir todas las preguntas del juego base)
-            // Hacemos referencia a questions que debería estar definido en script.js
+            // Obtener todas las preguntas disponibles
             let gameQuestions = [];
             if (typeof questions !== 'undefined' && Array.isArray(questions)) {
-                // Mezclar todas las preguntas
-                const allQuestions = [...questions];
+                // Mezclar todas las preguntas disponibles
+                const shuffledQuestions = [...questions].sort(() => Math.random() - 0.5);
                 
-                // Fisher-Yates (Knuth) Shuffle
-                for (let i = allQuestions.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [allQuestions[i], allQuestions[j]] = [allQuestions[j], allQuestions[i]];
+                // Tomar el número solicitado de preguntas
+                gameQuestions = shuffledQuestions.slice(0, onlineGameState.totalQuestions);
+                
+                // Ajustar el número de preguntas si no hay suficientes
+                if (gameQuestions.length < onlineGameState.totalQuestions) {
+                    console.warn(`No hay suficientes preguntas. Usando ${gameQuestions.length} preguntas.`);
+                    onlineGameState.totalQuestions = gameQuestions.length;
                 }
-                
-                // Tomar número deseado de preguntas
-                gameQuestions = allQuestions.slice(0, onlineGameState.totalQuestions);
             } else {
-                // Crear preguntas de ejemplo si no hay disponibles
-                for (let i = 0; i < onlineGameState.totalQuestions; i++) {
-                    gameQuestions.push({
-                        text: `Pregunta de ejemplo ${i + 1}`,
-                        options: [
-                            { text: "Opción A", correct: i % 3 === 0 },
-                            { text: "Opción B", correct: i % 3 === 1 },
-                            { text: "Opción C", correct: i % 3 === 2 }
-                        ],
-                        feedback: {
-                            correct: "¡Correcto!",
-                            incorrect: "Incorrecto, sigue intentando."
-                        }
-                    });
-                }
+                console.error('No se encontraron preguntas. Asegúrate de que el array questions esté definido en script.js');
+                return;
             }
             
             // Iniciar juego

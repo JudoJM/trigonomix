@@ -217,52 +217,22 @@ body.dark-mode #timer-display {
 }
 
 #question-image-container {
-    margin: 10px 0 20px 0;
-    min-height: 150px;
+    margin: 10px 0 20px 0; /* Adjusted margin */
+    min-height: 150px; /* Ensure space even if image is small or absent */
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 100%;
-    max-width: 450px;
-    overflow: hidden;
-    border-radius: 8px;
-    background-color: #f8f9fa;
-    padding: 10px;
-    box-sizing: border-box;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-#online-question-image-container {
-    margin: 10px 0 20px 0;
-    min-height: 150px;
-    max-height: 250px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-    border-radius: 8px;
-    background-color: #f8f9fa;
-    padding: 10px;
-    box-sizing: border-box;
-    width: 100%;
-    max-width: 450px;
-    margin-left: auto;
-    margin-right: auto;
 }
 
 #question-image {
-    max-width: 100%;
-    max-height: 250px;
-    width: auto;
+    max-width: 200px;
+    max-height: 180px; /* Max height for question image */
     height: auto;
-    border: 1px solid #e0e0e0;
-    border-radius: 6px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    object-fit: contain;
-    object-position: center;
-    transition: transform 0.3s ease-in-out;
+    border: 2px solid #e0e0e0; /* Softer border */
+    border-radius: 8px;
+    margin-bottom: 5px; /* Space between image and text (if any) */
+    transition: transform 0.3s ease-in-out; /* Image hover effect */
 }
 #question-image:hover {
     transform: scale(1.05);
@@ -1995,79 +1965,26 @@ body.dark-mode .game-setup-info {
     max-width: 450px;
     margin: 15px auto;
     text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    border-radius: 8px;
-    background-color: #f8f9fa;
-    padding: 10px;
-    box-sizing: border-box;
 }
 
 #survival-question-image {
     max-width: 100%;
-    max-height: 250px; /* Limit the maximum height */
-    width: auto;
     height: auto;
-    border-radius: 6px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     object-fit: contain;
-    object-position: center;
 }
 
 #survival-options-container {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     width: 100%;
-    max-width: 500px;
-    margin: 15px auto;
-    padding: 0 10px;
-    box-sizing: border-box;
+    margin: 15px 0;
 }
 
 #survival-options-container button {
     animation: popInItem 0.3s ease-out backwards;
-    padding: 12px 15px;
-    border: 2px solid #e0e0e0;
-    border-radius: 8px;
-    background-color: #f8f9fa;
-    transition: all 0.2s ease;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 60px;
-}
-
-#survival-options-container button:hover {
-    border-color: #2196f3;
-    background-color: #e3f2fd;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-#survival-options-container button.image-option {
-    padding: 10px;
-    background-color: white;
-}
-
-#survival-options-container button.image-option img {
-    max-width: 100%;
-    max-height: 120px;
-    height: auto;
-    object-fit: contain;
-    margin-bottom: 8px;
-    border-radius: 4px;
-}
-
-#survival-options-container button.image-option span {
-    font-size: 0.9em;
-    color: #333;
-    margin-top: 5px;
-    text-align: center;
 }
 
 #survival-options-container button:nth-child(1) { animation-delay: 0.1s; }

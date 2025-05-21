@@ -756,42 +756,8 @@ document.addEventListener('DOMContentLoaded', () => {
     nextQuestionButton.addEventListener('click', goToNextQuestion);
     const quitGameButton = document.getElementById('quit-game-button');
     quitGameButton.addEventListener('click', () => {
-        const survivalScreen = document.getElementById('modo-supervivencia');
-        if (survivalScreen && survivalScreen.classList.contains('active')) {
-            // Clear all timers
-            clearSurvivalTimers();
-            
-            // Reset survival data
-            survivalData = null;
-            
-            // Reset UI
-            if (survivalFeedbackText) {
-                survivalFeedbackText.className = 'feedback-animation';
-                survivalFeedbackText.textContent = '';
-            }
-            
-            // Reset options
-            if (survivalOptionsContainer) {
-                const optionButtons = survivalOptionsContainer.querySelectorAll('button');
-                optionButtons.forEach(btn => {
-                    btn.disabled = false;
-                    btn.classList.remove('correct', 'incorrect');
-                });
-            }
-            
-            // Hide all screens and show start screen
-            const screens = document.querySelectorAll('.screen');
-            screens.forEach(screen => screen.classList.remove('active'));
-            
-            const startScreen = document.getElementById('start-screen');
-            if (startScreen) {
-                startScreen.classList.add('active');
-            }
-        } else {
-            // For regular game mode
-            stopQuestionTimer();
-            showScreen('level-select-screen');
-        }
+        stopQuestionTimer(); // Stop timer when quitting
+        showScreen('level-select-screen'); 
     });
 
     playAgainButton.addEventListener('click', () => {
@@ -1237,21 +1203,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- Survival Mode Variables and Elements ---
-    let survivalData = null;
-    let survivalTimer = null;
-    let survivalGameOverTimer = null;
-    
-    // Clear all survival mode timers
-    function clearSurvivalTimers() {
-        if (survivalTimer) {
-            clearInterval(survivalTimer);
-            survivalTimer = null;
-        }
-        if (survivalGameOverTimer) {
-            clearTimeout(survivalGameOverTimer);
-            survivalGameOverTimer = null;
-        }
-    }
+    let survivalData = {
+        score: 0,
+        allQuestions: [],
+        currentQuestionIndex: 0,
+        currentQuestionAnswered: false
+    };
     
     const survivalTimePerQuestion = 20; // 20 seconds per question in survival mode
     let survivalTimeLeft = survivalTimePerQuestion;
@@ -1766,48 +1723,18 @@ document.addEventListener('DOMContentLoaded', () => {
      * Starts a new survival mode game
      */
     function startSurvivalMode() {
-        initAudio();
+        initAudio(); // Ensure audio is ready
         
-        // Clear any existing timers
-        clearSurvivalTimers();
-        
-        // Initialize survival data
-        survivalData = {
-            score: 0,
-            allQuestions: [],
-            currentQuestionIndex: 0,
-            currentQuestionAnswered: false,
-            isActive: true
-        };
+        // Reset survival data
+        survivalData.score = 0;
+        survivalData.currentQuestionIndex = 0;
+        survivalData.currentQuestionAnswered = false;
         
         // Get all questions from all levels and shuffle them
         survivalData.allQuestions = questions
-            .map(q => ({
-                ...q,
-                options: q.options.map(opt => ({
-                    ...opt,
-                    text: opt.text,
-                    correct: opt.correct || false
-                }))
-            }))
-            .sort(() => Math.random() - 0.5);
+            .map(q => ({ ...q, options: q.options.map(opt => ({ ...opt })) })) // Deep copy
+            .sort(() => Math.random() - 0.5); // Shuffle
         
-        // Reset UI
-        if (survivalFeedbackText) {
-            survivalFeedbackText.className = 'feedback-animation';
-            survivalFeedbackText.textContent = '';
-        }
-        
-        // Enable all option buttons
-        if (survivalOptionsContainer) {
-            const optionButtons = survivalOptionsContainer.querySelectorAll('button');
-            optionButtons.forEach(btn => {
-                btn.disabled = false;
-                btn.classList.remove('correct', 'incorrect');
-            });
-        }
-        
-        // Start the game
         updateSurvivalUI();
         loadSurvivalQuestion();
         showScreen('modo-supervivencia');
@@ -1956,37 +1883,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     /**
-     * Starts the Survival Mode timer
+     * Starts the timer for Survival Mode
      */
     function startSurvivalTimer() {
-        // Clear any existing timers first
-        clearSurvivalTimers();
-        
-        // Don't start if survival mode is not active
-        if (!survivalData || !survivalData.isActive) return;
-        
-        // Reset time left and update display
+        stopSurvivalTimer(); // Clear any existing timer
         survivalTimeLeft = survivalTimePerQuestion;
         updateSurvivalTimerDisplay();
         
-        // Start the timer
-        survivalTimer = setInterval(() => {
-            // Don't proceed if survival mode is not active
-            if (!survivalData || !survivalData.isActive) {
-                clearSurvivalTimers();
-                return;
-            }
-            
+        survivalTimerInterval = setInterval(() => {
             survivalTimeLeft--;
             updateSurvivalTimerDisplay();
-            
             if (survivalTimeLeft <= 0) {
-                clearInterval(survivalTimer);
-                survivalTimer = null;
-                
-                if (survivalData && survivalData.isActive) {
-                    handleSurvivalTimeout();
-                }
+                handleSurvivalTimeout();
             }
         }, 1000);
     }
@@ -1995,7 +1903,8 @@ document.addEventListener('DOMContentLoaded', () => {
      * Stops the Survival Mode timer
      */
     function stopSurvivalTimer() {
-        clearSurvivalTimers();
+        clearInterval(survivalTimerInterval);
+        survivalTimerInterval = null;
     }
     
     /**
@@ -2022,60 +1931,33 @@ document.addEventListener('DOMContentLoaded', () => {
      * Handles timeout in Survival Mode
      */
     function handleSurvivalTimeout() {
-        // Don't proceed if not active, already answered, or no survival data
-        if (!survivalData || !survivalData.isActive || survivalData.currentQuestionAnswered) {
-            return;
-        }
-        
-        // Mark as answered and stop timers
+        if (survivalData.currentQuestionAnswered) return;
         survivalData.currentQuestionAnswered = true;
         stopSurvivalTimer();
         
-        // Play sound and show feedback
-        playSound('wrong');
+        playSoundFeedback(false);
         
-        if (survivalFeedbackText) {
-            survivalFeedbackText.textContent = "¡Tiempo agotado!";
-            survivalFeedbackText.className = 'feedback-animation incorrect show';
-        }
+        survivalFeedbackText.textContent = "¡Tiempo agotado!";
+        survivalFeedbackText.className = 'feedback-animation incorrect show';
         
         // Disable all option buttons
-        if (survivalOptionsContainer) {
-            const optionButtons = survivalOptionsContainer.querySelectorAll('button');
-            optionButtons.forEach(btn => {
-                btn.disabled = true;
-                
-                // Show correct answer
-                const question = survivalData.allQuestions[survivalData.currentQuestionIndex];
-                if (question?.currentShuffledOptions) {
-                    const optionIndex = Array.from(optionButtons).indexOf(btn);
-                    const currentButtonOption = question.currentShuffledOptions[optionIndex];
-                    if (currentButtonOption?.correct) {
-                        btn.classList.add('correct');
-                    }
+        const optionButtons = survivalOptionsContainer.querySelectorAll('button');
+        optionButtons.forEach(btn => btn.disabled = true);
+        
+        // Show the correct answer
+        const question = survivalData.allQuestions[survivalData.currentQuestionIndex];
+        if (question) {
+            optionButtons.forEach((btn, idx) => {
+                const currentButtonOption = question.currentShuffledOptions[idx];
+                if (currentButtonOption.correct) {
+                    btn.classList.add('correct');
                 }
             });
         }
         
-        // Clear any existing game over timeout
-        if (survivalGameOverTimer) {
-            clearTimeout(survivalGameOverTimer);
-            survivalGameOverTimer = null;
-        }
-        
-        // Set a short delay before moving to next question or ending game
-        survivalGameOverTimer = setTimeout(() => {
-            if (!survivalData || !survivalData.isActive) return;
-            
-            // Check if there are more questions
-            if (survivalData.currentQuestionIndex < survivalData.allQuestions.length - 1) {
-                // Move to next question
-                survivalData.currentQuestionIndex++;
-                loadSurvivalQuestion();
-            } else {
-                // No more questions, end game
-                endSurvivalGame(true);
-            }
+        // End the game after showing feedback
+        setTimeout(() => {
+            endSurvivalGame(false);
         }, 1500);
     }
     
@@ -2084,21 +1966,6 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {boolean} completedAllQuestions - Whether the player completed all questions
      */
     function endSurvivalGame(completedAllQuestions) {
-        // Clear any pending timers
-        clearSurvivalTimers();
-        
-        // If no survival data, don't proceed
-        if (!survivalData) {
-            return;
-        }
-        
-        // If the game was quit, don't show the game over screen
-        if (survivalData.wasQuit) {
-            // Reset the flag for future games
-            survivalData.wasQuit = false;
-            return;
-        }
-        
         stopSurvivalTimer();
         
         // Update final score display

@@ -12,22 +12,25 @@
         }
     }
     </script>
-    <!-- Cargar Socket.io desde CDN directamente -->
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" 
-            integrity="sha384-mZLF4UVrpi/QTWPA7BjNPEnkIfRFn4ZEO3Qt/HFklTJBj/gBOV8G3HcKn4NfQblz" 
-            crossorigin="anonymous">
-    </script>
+    <!-- Cargar Socket.io desde el servidor o CDN como fallback -->
+    <script src="/socket.io/socket.io.js"></script>
     <script>
-        // Verificar si Socket.io se cargó correctamente
+        // Verificar si Socket.io se cargó correctamente y cargar desde CDN si es necesario
         window.addEventListener('DOMContentLoaded', function() {
-            if (typeof io !== 'undefined') {
-                console.log('Socket.io cargado correctamente');
-                // Si tienes una función de inicialización, puedes llamarla aquí
-                if (typeof initSocketConnection === 'function') {
-                    initSocketConnection();
-                }
-            } else {
-                console.error('Error al cargar Socket.io');
+            if (typeof io === 'undefined') {
+                console.log('Cargando Socket.io desde CDN...');
+                var script = document.createElement('script');
+                script.src = 'https://cdn.socket.io/4.7.2/socket.io.min.js';
+                script.integrity = "sha384-mZLF4UVrpi/QTWPA7BjNPsS/zBP0ZDsGDCnZUCTCYYFS9bELsvTTn7MU7wUoOhbr";
+                script.crossOrigin = "anonymous";
+                script.onload = function() {
+                    console.log('Socket.io cargado correctamente desde CDN');
+                    // Si tienes una función de inicialización, puedes llamarla aquí
+                    if (typeof initSocketConnection === 'function') {
+                        initSocketConnection();
+                    }
+                };
+                document.head.appendChild(script);
             }
         });
     </script>
@@ -47,30 +50,30 @@
                 <label for="player-name-input">Nombre del Jugador:</label>
                 <input type="text" id="player-name-input" placeholder="Jugador" maxlength="20">
             </div>
-            <button id="start-game-button" class="action-button">🚀Comenzar</button>
-            <button id="survival-button" class="action-button">⏳Modo Supervivencia</button>
-            <button id="multiplayer-button" class="action-button">🎮Modo 2 Jugadores</button>
-            <button id="online-button" class="action-button">🌐Multijugador Online</button>
-            <button id="theory-button" class="secondary-button">📚Teoría</button>
-            <button id="history-button" class="secondary-button">📜Historial</button>
-            <button id="achievements-button" class="secondary-button">🏆Logros</button>
-            <button id="authors-button" class="secondary-button">🧑‍💻Autores</button>
-            <button id="about-button" class="secondary-button">ℹ️Acerca de</button>
+            <button id="start-game-button" class="action-button">Comenzar</button>
+            <button id="survival-button" class="action-button">Modo Supervivencia</button>
+            <button id="multiplayer-button" class="action-button">Modo 2 Jugadores</button>
+            <button id="online-button" class="action-button">Multijugador Online</button>
+            <button id="theory-button" class="secondary-button">Teoría</button>
+            <button id="history-button" class="secondary-button">Historial</button>
+            <button id="achievements-button" class="secondary-button">Logros</button>
+            <button id="authors-button" class="secondary-button">Autores</button>
+            <button id="about-button" class="secondary-button">Acerca de</button>
         </div>
 
         <!-- Level Select Screen -->
         <div id="level-select-screen" class="screen">
             <h2>Selecciona un Nivel</h2>
             <button id="level-easy" data-level="easy" class="level-button action-button">
-                🟢Fácil (Conceptos)
+                Fácil (Conceptos)
                 <span class="level-highscore" data-level="easy">Mejor: 0 (CPU)</span>
             </button>
             <button id="level-intermediate" data-level="intermediate" class="level-button action-button">
-                🟡Intermedio (Identificación)
+                Intermedio (Identificación)
                 <span class="level-highscore" data-level="intermediate">Mejor: 0 (CPU)</span>
             </button>
             <button id="level-difficult" data-level="difficult" class="level-button action-button">
-                🔴Difícil (Relaciones)
+                Difícil (Relaciones)
                 <span class="level-highscore" data-level="difficult">Mejor: 0 (CPU)</span>
             </button>
             <button class="nav-button" data-target="start-screen">Volver al Inicio</button>
