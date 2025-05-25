@@ -1585,7 +1585,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Mostrar retroalimentación
         if (selectedOption.correct) {
             feedbackText.textContent = feedbackMessages.correct || "¡Correcto!";
-            feedbackText.className = "feedback-animation correct";
+            feedbackText.classList.add('correct');
             playSoundFeedback(true);
             
             // Actualizar puntuación del jugador actual
@@ -1604,14 +1604,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else {
             feedbackText.textContent = feedbackMessages.incorrect || "Incorrecto";
-            feedbackText.className = "feedback-animation incorrect";
+            feedbackText.classList.add('incorrect');
             playSoundFeedback(false);
             
             // Registrar respuesta incorrecta
             if (multiplayerData.currentTurn === 1) {
                 multiplayerData.player1.incorrectAnswers++;
             } else {
-                multiplayerData.player2.incorrectAnswers++;
+                multiplayerData.player2.incorrectAnswers
             }
         }
         
@@ -1930,36 +1930,55 @@ document.addEventListener('DOMContentLoaded', () => {
     /**
      * Handles timeout in Survival Mode
      */
-    function handleSurvivalTimeout() {
-        if (survivalData.currentQuestionAnswered) return;
-        survivalData.currentQuestionAnswered = true;
-        stopSurvivalTimer();
+    function handleSurvivalAnswerSelection(selectedIndexInShuffledArray, selectedOptionObject, feedbackMessages) {
+    if (survivalData.currentQuestionAnswered) return;
+    survivalData.currentQuestionAnswered = true;
+    stopSurvivalTimer();
+    
+    const isCorrect = selectedOptionObject.correct;
+    playSoundFeedback(isCorrect);
+    
+    const question = survivalData.allQuestions[survivalData.currentQuestionIndex];
+    
+    if (isCorrect) {
+        survivalData.score++;
+        survivalFeedbackText.textContent = feedbackMessages.correct || "¡Correcto!";
+        survivalFeedbackText.classList.add('correct', 'show');
         
-        playSoundFeedback(false);
+        // Update score display with animation
+        survivalScoreDisplay.textContent = `Aciertos: ${survivalData.score}`;
+        survivalScoreDisplay.classList.add('updated');
+        setTimeout(() => survivalScoreDisplay.classList.remove('updated'), 600);
         
-        survivalFeedbackText.textContent = "¡Tiempo agotado!";
-        survivalFeedbackText.className = 'feedback-animation incorrect show';
-        
-        // Disable all option buttons
-        const optionButtons = survivalOptionsContainer.querySelectorAll('button');
-        optionButtons.forEach(btn => btn.disabled = true);
-        
-        // Show the correct answer
-        const question = survivalData.allQuestions[survivalData.currentQuestionIndex];
-        if (question) {
-            optionButtons.forEach((btn, idx) => {
-                const currentButtonOption = question.currentShuffledOptions[idx];
-                if (currentButtonOption.correct) {
-                    btn.classList.add('correct');
-                }
-            });
-        }
+        // Move to next question after a short delay
+        setTimeout(() => {
+            survivalData.currentQuestionIndex++;
+            loadSurvivalQuestion();
+        }, 1500);
+    } else {
+        // Game over on incorrect answer
+        survivalFeedbackText.textContent = feedbackMessages.incorrect || "Incorrecto.";
+        survivalFeedbackText.classList.add('incorrect', 'show');
         
         // End the game after showing feedback
         setTimeout(() => {
             endSurvivalGame(false);
         }, 1500);
     }
+    
+    // Marcar solo la correcta en verde y las incorrectas en rojo
+    const optionButtons = survivalOptionsContainer.querySelectorAll('button');
+    optionButtons.forEach((btn, idx) => {
+        btn.disabled = true;
+        btn.style.animation = 'none';
+        const currentButtonOption = question.currentShuffledOptions[idx];
+        if (currentButtonOption.correct) {
+            btn.classList.add('correct');
+        } else {
+            btn.classList.add('incorrect');
+        }
+    });
+}
     
     /**
      * Ends the Survival Mode game
