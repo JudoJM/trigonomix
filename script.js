@@ -1854,12 +1854,10 @@ document.addEventListener('DOMContentLoaded', () => {
             survivalData.score++;
             survivalFeedbackText.textContent = feedbackMessages.correct || "¡Correcto!";
             survivalFeedbackText.classList.add('correct', 'show');
-            
             // Update score display with animation
             survivalScoreDisplay.textContent = `Aciertos: ${survivalData.score}`;
             survivalScoreDisplay.classList.add('updated');
             setTimeout(() => survivalScoreDisplay.classList.remove('updated'), 600);
-            
             // Move to next question after a short delay
             setTimeout(() => {
                 survivalData.currentQuestionIndex++;
@@ -1869,25 +1867,21 @@ document.addEventListener('DOMContentLoaded', () => {
             // Game over on incorrect answer
             survivalFeedbackText.textContent = feedbackMessages.incorrect || "Incorrecto.";
             survivalFeedbackText.classList.add('incorrect', 'show');
-            
             // End the game after showing feedback
             setTimeout(() => {
                 endSurvivalGame(false);
             }, 1500);
         }
-        
-        // Disable all option buttons
+        // Disable all option buttons y colorear
         const optionButtons = survivalOptionsContainer.querySelectorAll('button');
         optionButtons.forEach((btn, idx) => {
             btn.disabled = true;
             btn.style.animation = 'none';
-            
             const currentButtonOption = question.currentShuffledOptions[idx];
-            
-            if (idx === selectedIndexInShuffledArray) {
-                btn.classList.add(isCorrect ? 'correct' : 'incorrect');
-            } else if (currentButtonOption.correct && !isCorrect) {
+            if (currentButtonOption.correct) {
                 btn.classList.add('correct');
+            } else {
+                btn.classList.add('incorrect');
             }
         });
     }
