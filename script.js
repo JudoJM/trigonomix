@@ -1185,12 +1185,12 @@ document.addEventListener('DOMContentLoaded', () => {
              // If all achievements are defined but none are unlocked yet by the player
             // This check is slightly redundant if the loop always runs but provides specific text
             // For an empty list if no achievements are defined vs none unlocked.
-            // However, a more robust way is to check if any are unlocked.
+            // Sin embargo, una forma más robusta es verificar si hay alguno desbloqueado.
             const anyUnlocked = Object.values(gameData.playerAchievements).some(date => date !== null);
             if (!anyUnlocked && hasAnyAchievementsDefined) {
-                 // This message will be overwritten if items are added, so we could add a placeholder
-                 // if achievementList is empty after the loop.
-                 // For now, the individual "Bloqueado" messages handle this.
+                 // Este mensaje será sobrescrito si se añaden elementos, así que podríamos añadir un marcador de posición
+                 // si achievementList está vacío después del bucle.
+                 // Por ahora, el manejo de texto "Bloqueado" individual ya se encarga de esto.
             }
         }
          // If the list is still empty after trying to populate, it means no achievements.
@@ -1611,7 +1611,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (multiplayerData.currentTurn === 1) {
                 multiplayerData.player1.incorrectAnswers++;
             } else {
-                multiplayerData.player2.incorrectAnswers
+                multiplayerData.player2.incorrectAnswers++;
             }
         }
         
@@ -1866,18 +1866,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 1500);
         }
         
-        // Disable all option buttons
+        // Disable all option buttons y marcar correcta en verde y el resto en rojo
         const optionButtons = survivalOptionsContainer.querySelectorAll('button');
         optionButtons.forEach((btn, idx) => {
             btn.disabled = true;
             btn.style.animation = 'none';
-            
             const currentButtonOption = question.currentShuffledOptions[idx];
-            
-            if (idx === selectedIndexInShuffledArray) {
-                btn.classList.add(isCorrect ? 'correct' : 'incorrect');
-            } else if (currentButtonOption.correct && !isCorrect) {
+            if (currentButtonOption.correct) {
                 btn.classList.add('correct');
+            } else {
+                btn.classList.add('incorrect');
             }
         });
     }
@@ -1930,55 +1928,33 @@ document.addEventListener('DOMContentLoaded', () => {
     /**
      * Handles timeout in Survival Mode
      */
-    function handleSurvivalAnswerSelection(selectedIndexInShuffledArray, selectedOptionObject, feedbackMessages) {
-    if (survivalData.currentQuestionAnswered) return;
-    survivalData.currentQuestionAnswered = true;
-    stopSurvivalTimer();
-    
-    const isCorrect = selectedOptionObject.correct;
-    playSoundFeedback(isCorrect);
-    
-    const question = survivalData.allQuestions[survivalData.currentQuestionIndex];
-    
-    if (isCorrect) {
-        survivalData.score++;
-        survivalFeedbackText.textContent = feedbackMessages.correct || "¡Correcto!";
-        survivalFeedbackText.classList.add('correct', 'show');
-        
-        // Update score display with animation
-        survivalScoreDisplay.textContent = `Aciertos: ${survivalData.score}`;
-        survivalScoreDisplay.classList.add('updated');
-        setTimeout(() => survivalScoreDisplay.classList.remove('updated'), 600);
-        
-        // Move to next question after a short delay
-        setTimeout(() => {
-            survivalData.currentQuestionIndex++;
-            loadSurvivalQuestion();
-        }, 1500);
-    } else {
-        // Game over on incorrect answer
-        survivalFeedbackText.textContent = feedbackMessages.incorrect || "Incorrecto.";
+    function handleSurvivalTimeout() {
+        if (survivalData.currentQuestionAnswered) return;
+        survivalData.currentQuestionAnswered = true;
+        stopSurvivalTimer();
+
+        survivalFeedbackText.textContent = "¡Tiempo agotado!";
         survivalFeedbackText.classList.add('incorrect', 'show');
-        
-        // End the game after showing feedback
+
+        // Marcar solo la correcta en verde y las incorrectas en rojo
+        const question = survivalData.allQuestions[survivalData.currentQuestionIndex];
+        const optionButtons = survivalOptionsContainer.querySelectorAll('button');
+        optionButtons.forEach((btn, idx) => {
+            btn.disabled = true;
+            btn.style.animation = 'none';
+            const currentButtonOption = question.currentShuffledOptions[idx];
+            if (currentButtonOption.correct) {
+                btn.classList.add('correct');
+            } else {
+                btn.classList.add('incorrect');
+            }
+        });
+
+        // End the game after a short delay
         setTimeout(() => {
             endSurvivalGame(false);
         }, 1500);
     }
-    
-    // Marcar solo la correcta en verde y las incorrectas en rojo
-    const optionButtons = survivalOptionsContainer.querySelectorAll('button');
-    optionButtons.forEach((btn, idx) => {
-        btn.disabled = true;
-        btn.style.animation = 'none';
-        const currentButtonOption = question.currentShuffledOptions[idx];
-        if (currentButtonOption.correct) {
-            btn.classList.add('correct');
-        } else {
-            btn.classList.add('incorrect');
-        }
-    });
-}
     
     /**
      * Ends the Survival Mode game
