@@ -11,7 +11,12 @@ document.addEventListener('DOMContentLoaded', () => {
         PERFECT_EASY: 'PERFECT_EASY',
         PERFECT_INTERMEDIATE: 'PERFECT_INTERMEDIATE',
         PERFECT_DIFFICULT: 'PERFECT_DIFFICULT',
-        SURVIVAL_MASTER: 'SURVIVAL_MASTER'
+        SURVIVAL_MASTER: 'SURVIVAL_MASTER',
+        TRIGOFAN: 'TRIGOFAN', // abrir el juego 7 días diferentes
+        LIGHTSPEED: 'LIGHTSPEED', // respuesta correcta <2s
+        NEVER_GIVE_UP: 'NEVER_GIVE_UP', // jugar 10 partidas
+        VARIETY_MASTER: 'VARIETY_MASTER', // jugar todos los modos
+        REVENGE_ACCEPTED: 'REVENGE_ACCEPTED' // jugar 2 veces seguidas mismo modo
     };
 
     const ACHIEVEMENT_DETAILS = {
@@ -19,7 +24,12 @@ document.addEventListener('DOMContentLoaded', () => {
         [ACHIEVEMENT_IDS.PERFECT_EASY]: { name: "Balon de oro", description: "Completaste el nivel Fácil con puntaje perfecto." },
         [ACHIEVEMENT_IDS.PERFECT_INTERMEDIATE]: { name: "El proximo Albert Einstein", description: "Completaste el nivel Intermedio con puntaje perfecto." },
         [ACHIEVEMENT_IDS.PERFECT_DIFFICULT]: { name: "El orgullo de Pitágoras", description: "Completaste el nivel Difícil con puntaje perfecto." },
-        [ACHIEVEMENT_IDS.SURVIVAL_MASTER]: { name: "Maestro de la Supervivencia", description: "Respondiste todas las preguntas correctamente en el Modo Supervivencia." }
+        [ACHIEVEMENT_IDS.SURVIVAL_MASTER]: { name: "Maestro de la Supervivencia", description: "Respondiste todas las preguntas correctamente en el Modo Supervivencia." },
+        [ACHIEVEMENT_IDS.TRIGOFAN]: { name: "¡Trigofan!", description: "Abre el juego 7 días diferentes (no necesariamente seguidos)." },
+        [ACHIEVEMENT_IDS.LIGHTSPEED]: { name: "¡Velocidad lumínica!", description: "Responde correctamente en menos de 2 segundos una vez." },
+        [ACHIEVEMENT_IDS.NEVER_GIVE_UP]: { name: "¡Nunca me rindo!", description: "Juega 10 partidas en total." },
+        [ACHIEVEMENT_IDS.VARIETY_MASTER]: { name: "¡Maestro de la variedad!", description: "Juega al menos una vez cada modo de juego (normal, supervivencia, multijugador local, online)." },
+        [ACHIEVEMENT_IDS.REVENGE_ACCEPTED]: { name: "¡Revancha aceptada!", description: "Juega dos partidas seguidas en el mismo modo sin salir al menú principal." }
     };
     
 
@@ -1185,12 +1195,12 @@ document.addEventListener('DOMContentLoaded', () => {
              // If all achievements are defined but none are unlocked yet by the player
             // This check is slightly redundant if the loop always runs but provides specific text
             // For an empty list if no achievements are defined vs none unlocked.
-            // However, a more robust way is to check if any are unlocked.
+            // Sin embargo, una forma más robusta es verificar si hay alguno desbloqueado.
             const anyUnlocked = Object.values(gameData.playerAchievements).some(date => date !== null);
             if (!anyUnlocked && hasAnyAchievementsDefined) {
-                 // This message will be overwritten if items are added, so we could add a placeholder
-                 // if achievementList is empty after the loop.
-                 // For now, the individual "Bloqueado" messages handle this.
+                 // Este mensaje será sobrescrito si se añaden elementos, por lo que podríamos añadir un marcador de posición
+                 // si achievementList está vacío después del bucle.
+                 // Por ahora, el individual "Bloqueado" maneja esto.
             }
         }
          // If the list is still empty after trying to populate, it means no achievements.
@@ -1582,7 +1592,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        // Mostrar retroalimentación
+        // Mostrar retroalimentción
         if (selectedOption.correct) {
             feedbackText.textContent = feedbackMessages.correct || "¡Correcto!";
             feedbackText.classList.add('correct');
@@ -1611,7 +1621,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (multiplayerData.currentTurn === 1) {
                 multiplayerData.player1.incorrectAnswers++;
             } else {
-                multiplayerData.player2.incorrectAnswers
+                multiplayerData.player2.incorrectAnswers++;
             }
         }
         
@@ -1926,62 +1936,27 @@ document.addEventListener('DOMContentLoaded', () => {
             survivalTimerText.style.color = document.body.classList.contains('dark-mode') ? '#4fc3f7' : '#1e88e5';
         }
     }
-    
+
     /**
      * Handles timeout in Survival Mode
      */
-    function handleSurvivalAnswerSelection(selectedIndexInShuffledArray, selectedOptionObject, feedbackMessages) {
-    if (survivalData.currentQuestionAnswered) return;
-    survivalData.currentQuestionAnswered = true;
-    stopSurvivalTimer();
-    
-    const isCorrect = selectedOptionObject.correct;
-    playSoundFeedback(isCorrect);
-    
-    const question = survivalData.allQuestions[survivalData.currentQuestionIndex];
-    
-    if (isCorrect) {
-        survivalData.score++;
-        survivalFeedbackText.textContent = feedbackMessages.correct || "¡Correcto!";
-        survivalFeedbackText.classList.add('correct', 'show');
-        
-        // Update score display with animation
-        survivalScoreDisplay.textContent = `Aciertos: ${survivalData.score}`;
-        survivalScoreDisplay.classList.add('updated');
-        setTimeout(() => survivalScoreDisplay.classList.remove('updated'), 600);
-        
-        // Move to next question after a short delay
-        setTimeout(() => {
-            survivalData.currentQuestionIndex++;
-            loadSurvivalQuestion();
-        }, 1500);
-    } else {
-        // Game over on incorrect answer
-        survivalFeedbackText.textContent = feedbackMessages.incorrect || "Incorrecto.";
-        survivalFeedbackText.classList.add('incorrect', 'show');
-        
-        // End the game after showing feedback
+    function handleSurvivalTimeout() {
+        stopSurvivalTimer();
+        if (survivalData.currentQuestionAnswered) return;
+        survivalData.currentQuestionAnswered = true;
+        playSoundFeedback(false);
+        survivalFeedbackText.textContent = "¡Tiempo agotado!";
+        survivalFeedbackText.className = 'feedback-animation incorrect show';
+        // Disable all option buttons
+        const optionButtons = survivalOptionsContainer.querySelectorAll('button');
+        optionButtons.forEach(btn => btn.disabled = true);
+        // End the game after a short delay
         setTimeout(() => {
             endSurvivalGame(false);
         }, 1500);
     }
     
-    // Marcar solo la correcta en verde y las incorrectas en rojo
-    const optionButtons = survivalOptionsContainer.querySelectorAll('button');
-    optionButtons.forEach((btn, idx) => {
-        btn.disabled = true;
-        btn.style.animation = 'none';
-        const currentButtonOption = question.currentShuffledOptions[idx];
-        if (currentButtonOption.correct) {
-            btn.classList.add('correct');
-        } else {
-            btn.classList.add('incorrect');
-        }
-    });
-}
-    
-    /**
-     * Ends the Survival Mode game
+    /** Ends the Survival Mode game
      * @param {boolean} completedAllQuestions - Whether the player completed all questions
      */
     function endSurvivalGame(completedAllQuestions) {
@@ -2021,5 +1996,45 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('quit-multiplayer-button').addEventListener('click', () => {
         showScreen('start-screen');
     });
+
+    // --- Música de fondo ---
+    let backgroundMusic;
+    let backgroundMusicStarted = false;
+    let backgroundMusicTimeout;
+
+    function startBackgroundMusic() {
+        if (!backgroundMusicStarted) {
+            backgroundMusic = new Audio('sonidoFondo.mp3');
+            backgroundMusic.loop = false; // Usaremos reinicio manual
+            backgroundMusic.volume = 0.25;
+            backgroundMusic.addEventListener('loadedmetadata', () => {
+                scheduleBackgroundMusicRestart();
+            });
+            backgroundMusic.addEventListener('play', () => {
+                scheduleBackgroundMusicRestart();
+            });
+            backgroundMusic.addEventListener('ended', () => {
+                // Por si acaso, reiniciar si termina
+                backgroundMusic.currentTime = 0;
+                backgroundMusic.play();
+            });
+            backgroundMusic.play().catch(() => {});
+            backgroundMusicStarted = true;
+        }
+    }
+
+    function scheduleBackgroundMusicRestart() {
+        if (!backgroundMusic || isNaN(backgroundMusic.duration) || backgroundMusic.duration === Infinity) return;
+        if (backgroundMusicTimeout) clearTimeout(backgroundMusicTimeout);
+        const restartTime = Math.max(0, (backgroundMusic.duration - 5) * 1000); // 5 segundos antes del final
+        backgroundMusicTimeout = setTimeout(() => {
+            backgroundMusic.currentTime = 0;
+            backgroundMusic.play();
+            scheduleBackgroundMusicRestart();
+        }, restartTime);
+    }
+
+    document.body.addEventListener('click', startBackgroundMusic, { once: true });
+    document.body.addEventListener('keydown', startBackgroundMusic, { once: true });
 
 });
