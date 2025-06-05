@@ -1,26 +1,65 @@
+:root {
+    --base-scale: 0.9; /* Escala base reducida */
+    --header-scale: 0.95;
+}
+
+/* Ajustar escala para pantallas más pequeñas */
+@media (max-width: 1199px) {
+    :root {
+        --base-scale: 0.8;
+        --header-scale: 0.85;
+    }
+}
+
+/* Escala para pantallas grandes pero con valores más conservadores */
+@media (min-width: 1200px) and (max-width: 1599px) {
+    :root {
+        --base-scale: 0.9;
+        --header-scale: 0.95;
+    }
+}
+
+@media (min-width: 1600px) {
+    :root {
+        --base-scale: 1;
+        --header-scale: 1.05;
+    }
+}
+
 body {
-    font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif; /* Modern font stack */
-    background-color: #e3f2fd; /* Light Blue background */
+    font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    background-color: #e3f2fd;
     color: #333;
     margin: 0;
-    padding: 10px; /* Added padding for small screens */
+    padding: 10px;
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start; /* Alinear arriba para pantallas pequeñas */
     min-height: 100vh;
     text-align: center;
     overflow-x: hidden;
-    box-sizing: border-box; /* Better box model */
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
 }
 
 #app-container {
     background-color: #ffffff;
-    padding: 25px;
-    border-radius: 12px; /* Softer corners */
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15); /* More pronounced shadow */
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     width: 100%;
-    max-width: 550px;
-    overflow: hidden; /* Contain animations */
+    max-width: 500px;
+    margin: 10px auto;
+    transform: scale(var(--base-scale));
+    transform-origin: top center;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+#app-container::-webkit-scrollbar {
+    display: none;
 }
 
 .screen {
@@ -47,9 +86,9 @@ body {
 }
 
 h1 {
-    color: #0d47a1; /* Darker, richer Blue */
-    font-size: 2.4em;
-    margin-bottom: 10px; /* Adjusted margin */
+    color: #0d47a1;
+    font-size: calc(2.4em * var(--header-scale));
+    margin-bottom: calc(10px * var(--base-scale));
     animation: slideInDown 0.5s ease-out;
 }
 
@@ -59,33 +98,35 @@ h1 {
 }
 
 h2 {
-    color: #1565c0; /* Rich Blue */
-    font-size: 1.8em;
-    margin-bottom: 5px; /* Adjusted margin */
+    color: #1565c0;
+    font-size: calc(1.8em * var(--header-scale));
+    margin-bottom: calc(5px * var(--base-scale));
 }
 
 h3 {
-    color: #1e88e5; /* Bright Blue */
-    font-size: 1.2em;
-    margin-bottom: 8px;
+    color: #1e88e5;
+    font-size: calc(1.2em * var(--base-scale));
+    margin-bottom: calc(8px * var(--base-scale));
 }
 
 p {
-    font-size: 1.05em; /* Slightly larger base font for readability */
+    font-size: calc(1.05em * var(--base-scale));
     line-height: 1.65;
-    color: #555; /* Softer text color */
+    color: #555;
+    margin: calc(8px * var(--base-scale)) 0;
 }
 
 button {
-    padding: 14px 24px; /* Larger padding */
-    font-size: 1.05em; /* Larger font size */
-    font-weight: 500; /* Medium weight */
+    padding: calc(14px * var(--base-scale)) calc(24px * var(--base-scale));
+    font-size: calc(1.05em * var(--base-scale));
+    font-weight: 500;
     border: none;
-    border-radius: 25px; /* Pill shape */
+    border-radius: calc(25px * var(--base-scale));
     cursor: pointer;
     transition: background-color 0.2s ease-in-out, transform 0.15s ease, box-shadow 0.2s ease;
-    min-width: 180px; /* Ensure buttons are reasonably wide */
-    letter-spacing: 0.5px; /* Slight letter spacing */
+    min-width: calc(180px * var(--base-scale));
+    letter-spacing: calc(0.5px * var(--base-scale));
+    margin: calc(5px * var(--base-scale));
 }
 
 button:hover {
@@ -246,10 +287,10 @@ body.dark-mode #timer-display {
 
 #options-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Responsive columns */
-    gap: 12px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
     width: 100%;
-    margin-bottom: 20px;
+    margin: 10px 0;
 }
 
 #options-container button {
@@ -279,10 +320,13 @@ body.dark-mode #timer-display {
 
 #options-container button.image-option img {
     max-width: 100%;
-    max-height: 80px; /* Max height for images within buttons */
-    margin-bottom: 5px; /* Space if there's text below */
-    border-radius: 4px;
+    height: auto;
+    max-height: calc(120px * var(--base-scale));
+    margin-bottom: calc(5px * var(--base-scale));
+    border-radius: calc(4px * var(--base-scale));
     transition: transform 0.2s ease;
+    object-fit: contain;
+    display: block;
 }
 #options-container button.image-option:hover img {
     transform: scale(1.05);
@@ -1949,6 +1993,120 @@ body.dark-mode .game-setup-info {
 }
 
 /* --- SURVIVAL MODE STYLES --- */
+#survival-options-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    width: 100%;
+    margin: 10px 0;
+}
+
+#survival-options-container button {
+    background-color: #1e88e5;
+    color: white;
+    width: 100%;
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#survival-options-container button:hover:not(:disabled) {
+    background-color: #1976d2;
+    transform: translateY(-2px);
+}
+
+#survival-options-container button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+#survival-options-container button img {
+    max-width: 100%;
+    height: auto;
+    max-height: calc(100px * var(--base-scale));
+    margin-bottom: calc(5px * var(--base-scale));
+    border-radius: calc(4px * var(--base-scale));
+    object-fit: contain;
+    display: block;
+}
+
+#survival-options-container button.correct {
+    background-color: #4caf50;
+    animation: correctAnswerPulse 0.6s ease-out;
+}
+
+#survival-options-container button.incorrect {
+    background-color: #f44336;
+    animation: incorrectAnswerShake 0.5s ease-in-out;
+}
+
+.survival-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #f5f5f5;
+    border-radius: 8px;
+}
+
+.survival-timer-container {
+    text-align: right;
+}
+
+#survival-timer-bar-container {
+    width: 150px;
+    height: 10px;
+    background-color: #e0e0e0;
+    border-radius: 5px;
+    margin-top: 5px;
+    overflow: hidden;
+}
+
+#survival-timer-bar {
+    height: 100%;
+    width: 100%;
+    background-color: #4caf50;
+    transition: width 0.1s linear;
+}
+
+.survival-result-container {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.survival-result-score {
+    font-size: 1.5em;
+    margin: 10px 0;
+}
+
+.result-label {
+    display: block;
+    font-size: 0.8em;
+    color: #666;
+}
+
+.result-value {
+    font-size: 2em;
+    font-weight: bold;
+    color: #2196f3;
+    display: block;
+    margin-top: 5px;
+}
+
+.result-message {
+    font-size: 1.2em;
+    margin: 15px 0;
+    color: #333;
+}
 .survival-header {
     display: flex;
     justify-content: space-between;
